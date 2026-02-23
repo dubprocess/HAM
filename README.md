@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/public/ham-logo.svg" alt="HAM Logo" width="200">
+</p>
+
 # HAM — Hardware Asset Management
 
 A comprehensive IT Asset Management system with Fleet MDM integration, Apple Business Manager (ABM) sync, and Okta OIDC authentication. Track laptops, phones, tablets, and other Apple hardware with automated device sync, intelligent auto-assignment, location enrichment, and AppleCare warranty tracking.
