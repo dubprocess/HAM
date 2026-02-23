@@ -1,0 +1,46 @@
+{
+  "name": "it-asset-tracker-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.21.0",
+    "react-scripts": "5.0.1",
+    "@okta/okta-react": "^6.8.0",
+    "@okta/okta-auth-js": "^7.5.0",
+    "axios": "^1.6.2",
+    "@tanstack/react-query": "^5.17.0",
+    "@tanstack/react-table": "^8.11.2",
+    "recharts": "^2.10.3",
+    "date-fns": "^3.0.6",
+    "react-hook-form": "^7.49.2",
+    "react-hot-toast": "^2.4.1",
+    "lucide-react": "^0.303.0",
+    "clsx": "^2.1.0"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "http://localhost:8000"
+}

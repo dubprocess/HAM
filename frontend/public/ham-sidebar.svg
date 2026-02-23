@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 220" width="300" height="220">
+  <g transform="translate(150, 95) scale(0.78)">
+    <rect x="-95" y="-12" width="35" height="24" rx="10" fill="#F5E6C8" stroke="#1e293b" stroke-width="5"/>
+    <ellipse cx="-98" cy="-10" rx="14" ry="16" fill="#F5E6C8" stroke="#1e293b" stroke-width="5"/>
+    <ellipse cx="-98" cy="10" rx="14" ry="16" fill="#F5E6C8" stroke="#1e293b" stroke-width="5"/>
+    <rect x="-95" y="-8" width="35" height="16" fill="#F5E6C8"/>
+    <ellipse cx="10" cy="0" rx="78" ry="65" fill="#a0522d" stroke="#1e293b" stroke-width="5"/>
+    <path d="M-60,-20 C-68,-10 -68,10 -60,25 C-50,42 -30,55 -5,58 C-30,55 -55,40 -62,20 C-68,5 -65,-15 -55,-30 C-45,-45 -25,-52 -5,-55 C-30,-50 -50,-40 -60,-20 Z" fill="#7a3b1e" opacity="0.5"/>
+    <circle cx="-20" cy="-10" r="4" fill="#1e293b" opacity="0.6"/>
+    <circle cx="-10" cy="5" r="4" fill="#1e293b" opacity="0.6"/>
+    <circle cx="-25" cy="10" r="4" fill="#1e293b" opacity="0.6"/>
+    <circle cx="-5" cy="-20" r="4" fill="#1e293b" opacity="0.6"/>
+    <circle cx="-15" cy="22" r="4" fill="#1e293b" opacity="0.6"/>
+    <circle cx="-30" cy="-5" r="4" fill="#1e293b" opacity="0.6"/>
+    <ellipse cx="45" cy="0" rx="48" ry="52" fill="#e84057" stroke="#1e293b" stroke-width="5"/>
+    <ellipse cx="32" cy="-18" rx="8" ry="14" fill="white" opacity="0.35" transform="rotate(-15, 32, -18)"/>
+    <circle cx="50" cy="8" r="10" fill="#fce4ec" stroke="#1e293b" stroke-width="3"/>
+  </g>
+  <text x="150" y="202" text-anchor="middle" font-family="'Georgia', 'Palatino', 'Times New Roman', serif" font-size="64" font-weight="700" fill="#2D2D2D" letter-spacing="6">HAM</text>
+</svg>

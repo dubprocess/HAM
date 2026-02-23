@@ -1,0 +1,111 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: asset-tracker-db
+    environment:
+      POSTGRES_DB: asset_tracker
+      POSTGRES_USER: assetuser
+      POSTGRES_PASSWORD: changeme123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - asset-tracker-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assetuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: asset-tracker-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - asset-tracker-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: asset-tracker-backend
+    environment:
+      DATABASE_URL: postgresql://assetuser:changeme123@postgres:5432/asset_tracker
+      OKTA_ISSUER: ${OKTA_ISSUER}
+      OKTA_CLIENT_ID: ${OKTA_CLIENT_ID}
+      OKTA_CLIENT_SECRET: ${OKTA_CLIENT_SECRET}
+      OKTA_REDIRECT_URI: ${OKTA_REDIRECT_URI}
+      OKTA_API_TOKEN: ${OKTA_API_TOKEN}
+      FLEET_URL: ${FLEET_URL}
+      FLEET_API_TOKEN: ${FLEET_API_TOKEN}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      SECRET_KEY: ${SECRET_KEY:-change-this-secret-key-in-production}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - asset-tracker-network
+    volumes:
+      - ./backend:/app
+      - uploads:/app/uploads
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: asset-tracker-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_OKTA_ISSUER: ${OKTA_ISSUER}
+      REACT_APP_OKTA_CLIENT_ID: ${OKTA_CLIENT_ID}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - asset-tracker-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm start
+
+  # Celery worker for background tasks (optional - for scheduled syncs)
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: asset-tracker-celery
+    environment:
+      DATABASE_URL: postgresql://assetuser:changeme123@postgres:5432/asset_tracker
+      FLEET_URL: ${FLEET_URL}
+      FLEET_API_TOKEN: ${FLEET_API_TOKEN}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - asset-tracker-network
+    command: celery -A celery_app worker --loglevel=info
+    profiles:
+      - celery
+
+volumes:
+  postgres_data:
+  uploads:
+
+networks:
+  asset-tracker-network:
+    driver: bridge
