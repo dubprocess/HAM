@@ -1,30 +1,47 @@
-# Environment files
-.env
-*.env
-.env.local
-.env.*.local
-
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-venv/
+*.pyo
+*.pyd
+.Python
 env/
+venv/
+.env
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+.env.production
+*.pem
+*.p8
+keys/
 
 # Node
 node_modules/
+build/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Docker volumes
-postgres-data/
+# Docker
+.docker/
+
+# Database
+*.sqlite3
+postgres_data/
 
 # IDE
 .vscode/
 .idea/
-
-# OS
+*.swp
+*.swo
 .DS_Store
 
-# Database
-*.db
-*.sqlite*.csv
-*.csv
+# Uploads
+uploads/
+
+# Logs
+*.log
