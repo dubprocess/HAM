@@ -1,428 +1,385 @@
-# Deployment Guide
+# HAM — Deployment Guide
 
-This guide covers deploying the IT Inventory to various cloud platforms.
+This guide covers deploying HAM in various environments. Docker Compose is the recommended starting point for most teams.
 
 ## Table of Contents
-- [Prerequisites](#prerequisites)
-- [Local Development](#local-development)
-- [AWS Deployment](#aws-deployment)
-- [Google Cloud Deployment](#google-cloud-deployment)
-- [Azure Deployment](#azure-deployment)
-- [Manual Server Deployment](#manual-server-deployment)
 
-## Prerequisites
+- [Docker Compose (recommended)](#docker-compose-recommended)
+- [Manual / bare metal](#manual--bare-metal)
+- [AWS (ECS/Fargate)](#aws-ecsfarga te)
+- [Google Cloud (Cloud Run)](#google-cloud-cloud-run)
+- [Production checklist](#production-checklist)
+- [Backups](#backups)
+- [Troubleshooting](#troubleshooting)
 
-All deployments require:
-- Okta account with OIDC app configured
-- Fleet MDM instance with API access
-- PostgreSQL 15+ database
-- Redis instance (for background jobs)
+---
 
-## Local Development
+## Docker Compose (recommended)
 
-The easiest way to get started:
+The fastest path to a running HAM instance.
+
+### Prerequisites
+
+- Docker + Docker Compose
+- An OIDC provider (Okta today — see [docs/okta.md](docs/okta.md))
+- A Fleet MDM instance (see [docs/fleet.md](docs/fleet.md))
+- (Optional) Apple Business Manager credentials
+
+### Steps
 
 ```bash
-# 1. Copy environment example
-cp backend/.env.example .env
-
-# 2. Edit .env with your configuration
-nano .env
-
-# 3. Run quick start script
-chmod +x start.sh
-./start.sh
+git clone https://github.com/dubprocess/HAM.git
+cd HAM
+cp backend/.env.example backend/.env
+# Edit backend/.env with your credentials
+docker compose up --build -d
 ```
 
-Access at http://localhost:3000
+Or use the Makefile:
 
-## AWS Deployment
+```bash
+make start
+```
 
-### Architecture
-- **ECS/Fargate** - Container hosting
-- **RDS PostgreSQL** - Database
-- **ElastiCache Redis** - Caching
-- **S3** - File storage
-- **CloudFront** - CDN for frontend
-- **ALB** - Load balancing
-- **Route 53** - DNS
+- Frontend: http://localhost:3000
+- API: http://localhost:8000
+- API docs: http://localhost:8000/docs
 
-### Step-by-Step
+### Minimum required env vars
 
-#### 1. Create RDS PostgreSQL Instance
+```env
+# Database (auto-configured in Docker Compose)
+DATABASE_URL=postgresql://assetuser:changeme123@postgres:5432/asset_tracker
+
+# Application
+SECRET_KEY=<generate with: openssl rand -hex 32>
+ALLOWED_ORIGINS=http://localhost:3000
+
+# OIDC login
+OIDC_ISSUER=https://your-domain.okta.com/oauth2/default
+OIDC_CLIENT_ID=your_client_id
+OIDC_CLIENT_SECRET=your_client_secret
+OIDC_REDIRECT_URI=http://localhost:3000/callback
+
+# Fleet MDM
+FLEET_URL=https://your-fleet-instance.com
+FLEET_API_TOKEN=your_fleet_api_token
+```
+
+See `backend/.env.example` for the full reference including ABM, Slack, and sync schedule options.
+
+---
+
+## Manual / bare metal
+
+For deployment on a VPS or dedicated server without orchestration.
+
+### 1. Install dependencies
+
+```bash
+# Ubuntu / Debian
+sudo apt update
+sudo apt install -y docker.io docker-compose-v2 nginx certbot python3-certbot-nginx
+```
+
+### 2. Clone and configure
+
+```bash
+git clone https://github.com/dubprocess/HAM.git
+cd HAM
+cp backend/.env.example backend/.env
+# Edit backend/.env
+```
+
+### 3. Start services
+
+```bash
+docker compose up -d
+```
+
+### 4. Configure nginx reverse proxy
+
+Create `/etc/nginx/sites-available/ham`:
+
+```nginx
+server {
+    listen 80;
+    server_name ham.your-domain.com;
+
+    # Frontend
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # Backend API
+    location /api {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+Enable and reload:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/ham /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 5. SSL with Let's Encrypt
+
+```bash
+sudo certbot --nginx -d ham.your-domain.com
+```
+
+### 6. Update your OIDC redirect URI
+
+Once you have a real domain, update your Okta (or other IdP) app:
+- Sign-in redirect: `https://ham.your-domain.com/callback`
+- Update `OIDC_REDIRECT_URI` and `ALLOWED_ORIGINS` in `backend/.env`
+- Restart: `docker compose up -d`
+
+---
+
+## AWS (ECS/Fargate)
+
+### Architecture overview
+
+- **ECS/Fargate** — container hosting for backend + frontend
+- **RDS PostgreSQL** — managed database
+- **ALB** — load balancing + HTTPS termination
+- **ECR** — container registry
+- **Secrets Manager** — environment variable secrets (recommended)
+
+### 1. Create RDS PostgreSQL
 
 ```bash
 aws rds create-db-instance \
-    --db-instance-identifier asset-tracker-db \
+    --db-instance-identifier ham-db \
     --db-instance-class db.t3.micro \
     --engine postgres \
-    --engine-version 15.4 \
-    --master-username admin \
+    --engine-version 15 \
+    --master-username hamuser \
     --master-user-password YourSecurePassword \
     --allocated-storage 20 \
     --vpc-security-group-ids sg-xxxxx
 ```
 
-Note the endpoint URL.
-
-#### 2. Create ElastiCache Redis
+### 2. Create ECR repositories and push images
 
 ```bash
-aws elasticache create-cache-cluster \
-    --cache-cluster-id asset-tracker-redis \
-    --cache-node-type cache.t3.micro \
-    --engine redis \
-    --num-cache-nodes 1
-```
+aws ecr create-repository --repository-name ham-backend
+aws ecr create-repository --repository-name ham-frontend
 
-#### 3. Create ECR Repositories
-
-```bash
-# Backend repository
-aws ecr create-repository --repository-name asset-tracker-backend
-
-# Frontend repository
-aws ecr create-repository --repository-name asset-tracker-frontend
-```
-
-#### 4. Build and Push Images
-
-```bash
-# Login to ECR
+# Login
 aws ecr get-login-password --region us-east-1 | \
     docker login --username AWS --password-stdin YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com
 
-# Build and push backend
-cd backend
-docker build -t asset-tracker-backend .
-docker tag asset-tracker-backend:latest YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/asset-tracker-backend:latest
-docker push YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/asset-tracker-backend:latest
+# Build + push backend
+docker build -t ham-backend ./backend
+docker tag ham-backend:latest YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/ham-backend:latest
+docker push YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/ham-backend:latest
 
-# Build and push frontend
-cd ../frontend
-docker build -t asset-tracker-frontend .
-docker tag asset-tracker-frontend:latest YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/asset-tracker-frontend:latest
-docker push YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/asset-tracker-frontend:latest
+# Build + push frontend
+docker build -f frontend/Dockerfile.prod -t ham-frontend ./frontend
+docker tag ham-frontend:latest YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/ham-frontend:latest
+docker push YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/ham-frontend:latest
 ```
 
-#### 5. Create ECS Cluster
+### 3. Create ECS cluster and task definitions
 
 ```bash
-aws ecs create-cluster --cluster-name asset-tracker-cluster
+aws ecs create-cluster --cluster-name ham-cluster
 ```
 
-#### 6. Create Task Definitions
-
-Create `backend-task-definition.json`:
+Backend task definition (key env vars — use Secrets Manager for sensitive values):
 
 ```json
 {
-  "family": "asset-tracker-backend",
+  "family": "ham-backend",
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
-  "containerDefinitions": [
-    {
-      "name": "backend",
-      "image": "YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/asset-tracker-backend:latest",
-      "portMappings": [
-        {
-          "containerPort": 8000,
-          "protocol": "tcp"
-        }
-      ],
-      "environment": [
-        {"name": "DATABASE_URL", "value": "postgresql://admin:password@rds-endpoint:5432/asset_tracker"},
-        {"name": "OKTA_ISSUER", "value": "https://your-domain.okta.com/oauth2/default"},
-        {"name": "OKTA_CLIENT_ID", "value": "your_client_id"},
-        {"name": "OKTA_CLIENT_SECRET", "value": "your_client_secret"},
-        {"name": "FLEET_URL", "value": "https://fleet.example.com"},
-        {"name": "FLEET_API_TOKEN", "value": "your_fleet_token"}
-      ],
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "options": {
-          "awslogs-group": "/ecs/asset-tracker-backend",
-          "awslogs-region": "us-east-1",
-          "awslogs-stream-prefix": "ecs"
-        }
+  "containerDefinitions": [{
+    "name": "backend",
+    "image": "YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/ham-backend:latest",
+    "portMappings": [{"containerPort": 8000}],
+    "environment": [
+      {"name": "DATABASE_URL", "value": "postgresql://hamuser:password@rds-endpoint:5432/asset_tracker"},
+      {"name": "OIDC_ISSUER", "value": "https://your-domain.okta.com/oauth2/default"},
+      {"name": "OIDC_CLIENT_ID", "value": "your_client_id"},
+      {"name": "OIDC_CLIENT_SECRET", "value": "your_client_secret"},
+      {"name": "OIDC_REDIRECT_URI", "value": "https://ham.your-domain.com/callback"},
+      {"name": "FLEET_URL", "value": "https://your-fleet-instance.com"},
+      {"name": "FLEET_API_TOKEN", "value": "your_fleet_token"},
+      {"name": "ALLOWED_ORIGINS", "value": "https://ham.your-domain.com"},
+      {"name": "SECRET_KEY", "value": "your-secret-key"},
+      {"name": "ASSET_TAG_PREFIX", "value": "HAM"},
+      {"name": "LOCATIONS", "value": "HQ,Remote"}
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/ham-backend",
+        "awslogs-region": "us-east-1",
+        "awslogs-stream-prefix": "ecs"
       }
     }
-  ]
+  }]
 }
 ```
 
-Register task definition:
+### 4. Create ALB and ECS service
 
 ```bash
-aws ecs register-task-definition --cli-input-json file://backend-task-definition.json
-```
-
-#### 7. Create Load Balancer
-
-```bash
-aws elbv2 create-load-balancer \
-    --name asset-tracker-alb \
-    --subnets subnet-xxxxx subnet-yyyyy \
-    --security-groups sg-xxxxx
-```
-
-#### 8. Create ECS Service
-
-```bash
+# Create service
 aws ecs create-service \
-    --cluster asset-tracker-cluster \
-    --service-name asset-tracker-backend \
-    --task-definition asset-tracker-backend \
+    --cluster ham-cluster \
+    --service-name ham-backend \
+    --task-definition ham-backend \
     --desired-count 2 \
     --launch-type FARGATE \
     --network-configuration "awsvpcConfiguration={subnets=[subnet-xxxxx],securityGroups=[sg-xxxxx],assignPublicIp=ENABLED}" \
     --load-balancers "targetGroupArn=arn:aws:elasticloadbalancing:...,containerName=backend,containerPort=8000"
 ```
 
-#### 9. Update Okta Redirect URIs
+---
 
-Update your Okta app configuration:
-- Sign-in redirect: `https://your-domain.com/login/callback`
-- Sign-out redirect: `https://your-domain.com`
+## Google Cloud (Cloud Run)
 
-### Environment Variables for Production
+### Architecture overview
 
-```env
-DATABASE_URL=postgresql://admin:password@rds-endpoint.us-east-1.rds.amazonaws.com:5432/asset_tracker
-REDIS_URL=redis://redis-endpoint.cache.amazonaws.com:6379
-OKTA_ISSUER=https://your-domain.okta.com/oauth2/default
-OKTA_CLIENT_ID=production_client_id
-OKTA_CLIENT_SECRET=production_client_secret
-OKTA_REDIRECT_URI=https://assets.your-company.com/callback
-FLEET_URL=https://fleet.your-company.com
-FLEET_API_TOKEN=production_token
-ALLOWED_ORIGINS=https://assets.your-company.com
-SECRET_KEY=<generate-with-openssl-rand-hex-32>
-AWS_S3_BUCKET=asset-tracker-uploads
-AWS_REGION=us-east-1
-```
-
-## Google Cloud Deployment
-
-### Architecture
-- **Cloud Run** - Container hosting
-- **Cloud SQL** - PostgreSQL
-- **Memorystore** - Redis
-- **Cloud Storage** - File storage
-- **Cloud CDN** - Content delivery
+- **Cloud Run** — serverless container hosting
+- **Cloud SQL** — managed PostgreSQL
+- **Secret Manager** — environment variable secrets
 
 ### Steps
 
-1. **Create Cloud SQL Instance:**
 ```bash
-gcloud sql instances create asset-tracker-db \
+# Create Cloud SQL instance
+gcloud sql instances create ham-db \
     --database-version=POSTGRES_15 \
     --tier=db-f1-micro \
     --region=us-central1
-```
 
-2. **Build and Deploy with Cloud Run:**
-```bash
-# Backend
-gcloud builds submit --tag gcr.io/PROJECT_ID/asset-tracker-backend backend/
-gcloud run deploy asset-tracker-backend \
-    --image gcr.io/PROJECT_ID/asset-tracker-backend \
+# Build and deploy backend
+gcloud builds submit --tag gcr.io/PROJECT_ID/ham-backend backend/
+gcloud run deploy ham-backend \
+    --image gcr.io/PROJECT_ID/ham-backend \
     --platform managed \
     --region us-central1 \
-    --set-env-vars DATABASE_URL=...,OKTA_ISSUER=...,FLEET_URL=...
+    --set-env-vars \
+        DATABASE_URL=postgresql://...,\
+        OIDC_ISSUER=https://your-domain.okta.com/oauth2/default,\
+        OIDC_CLIENT_ID=your_client_id,\
+        OIDC_CLIENT_SECRET=your_client_secret,\
+        OIDC_REDIRECT_URI=https://ham-backend-xxxx.run.app/callback,\
+        FLEET_URL=https://your-fleet-instance.com,\
+        FLEET_API_TOKEN=your_fleet_token
 
-# Frontend
-gcloud builds submit --tag gcr.io/PROJECT_ID/asset-tracker-frontend frontend/
-gcloud run deploy asset-tracker-frontend \
-    --image gcr.io/PROJECT_ID/asset-tracker-frontend \
+# Build and deploy frontend
+gcloud builds submit --tag gcr.io/PROJECT_ID/ham-frontend frontend/
+gcloud run deploy ham-frontend \
+    --image gcr.io/PROJECT_ID/ham-frontend \
     --platform managed \
-    --region us-central1
+    --region us-central1 \
+    --set-env-vars REACT_APP_API_URL=https://ham-backend-xxxx.run.app
 ```
 
-## Manual Server Deployment
+---
 
-For deployment on a VPS or dedicated server:
+## Production checklist
 
-### 1. Install Dependencies
+Before going live:
 
-```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install -y docker docker-compose nginx certbot python3-certbot-nginx
-```
+- [ ] `SECRET_KEY` set to a strong random value (`openssl rand -hex 32`)
+- [ ] `POSTGRES_PASSWORD` changed from the default `changeme123`
+- [ ] HTTPS configured (nginx + Let's Encrypt, ALB, or Cloud Run)
+- [ ] OIDC redirect URI updated to your production domain
+- [ ] `ALLOWED_ORIGINS` set to your production frontend URL
+- [ ] ABM private key stored securely (not committed to git)
+- [ ] `keys/` directory excluded from version control (it's in `.gitignore`)
+- [ ] Database backups configured (see below)
+- [ ] Slack alerts configured and tested (`make sync-fleet` after deploy)
+- [ ] Fleet sync schedule reviewed (`FLEET_SYNC_HOUR`, `FLEET_SYNC_TIMEZONE`)
 
-### 2. Clone Repository
+---
 
-```bash
-git clone <your-repo-url>
-cd it-asset-tracker
-```
+## Backups
 
-### 3. Configure Environment
+### Automated daily backup script
 
-```bash
-cp backend/.env.example .env
-nano .env  # Edit with your values
-```
-
-### 4. Start Services
-
-```bash
-docker-compose up -d
-```
-
-### 5. Configure Nginx
-
-Create `/etc/nginx/sites-available/asset-tracker`:
-
-```nginx
-server {
-    listen 80;
-    server_name assets.your-domain.com;
-
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    location /api {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-Enable site:
-```bash
-sudo ln -s /etc/nginx/sites-available/asset-tracker /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-### 6. Setup SSL
-
-```bash
-sudo certbot --nginx -d assets.your-domain.com
-```
-
-### 7. Setup Automatic Backups
-
-Create `/home/ubuntu/backup-db.sh`:
+Create `/opt/ham/backup.sh`:
 
 ```bash
 #!/bin/bash
 DATE=$(date +%Y%m%d_%H%M%S)
-docker exec asset-tracker-db pg_dump -U assetuser asset_tracker > /backups/db_$DATE.sql
-find /backups -name "db_*.sql" -mtime +7 -delete
+BACKUP_DIR=/opt/ham/backups
+
+mkdir -p $BACKUP_DIR
+docker exec ham-db pg_dump -U assetuser asset_tracker > $BACKUP_DIR/ham_$DATE.sql
+
+# Keep 14 days of backups
+find $BACKUP_DIR -name "ham_*.sql" -mtime +14 -delete
+
+echo "Backup complete: ham_$DATE.sql"
 ```
 
 Add to crontab:
-```bash
-0 2 * * * /home/ubuntu/backup-db.sh
-```
-
-## Monitoring
-
-### Health Checks
 
 ```bash
-# Backend health
-curl https://assets.your-domain.com/api/health
-
-# Database connection
-docker exec asset-tracker-db pg_isready
+chmod +x /opt/ham/backup.sh
+echo "0 3 * * * /opt/ham/backup.sh" | crontab -
 ```
 
-### Logging
+### Restore from backup
 
 ```bash
-# View all logs
-docker-compose logs -f
-
-# Specific service
-docker-compose logs -f backend
-
-# Export logs
-docker-compose logs --no-color > logs.txt
+docker exec -i ham-db psql -U assetuser asset_tracker < /opt/ham/backups/ham_20260101_030000.sql
 ```
-
-## Scaling
-
-### Horizontal Scaling (AWS ECS)
-
-```bash
-aws ecs update-service \
-    --cluster asset-tracker-cluster \
-    --service asset-tracker-backend \
-    --desired-count 4
-```
-
-### Auto-Scaling
-
-Create auto-scaling policy based on CPU:
-
-```bash
-aws application-autoscaling register-scalable-target \
-    --service-namespace ecs \
-    --resource-id service/asset-tracker-cluster/asset-tracker-backend \
-    --scalable-dimension ecs:service:DesiredCount \
-    --min-capacity 2 \
-    --max-capacity 10
-```
-
-## Troubleshooting
-
-### Database Connection Issues
-```bash
-# Test connection
-docker exec -it asset-tracker-backend psql $DATABASE_URL
-
-# Check connectivity
-nc -zv rds-endpoint 5432
-```
-
-### Container Issues
-```bash
-# Restart all services
-docker-compose restart
-
-# Rebuild specific service
-docker-compose up -d --build backend
-
-# Clear volumes and restart
-docker-compose down -v
-docker-compose up -d
-```
-
-## Cost Optimization
-
-### AWS
-- Use Reserved Instances for predictable workloads
-- Enable auto-scaling to match demand
-- Use S3 lifecycle policies for old files
-- Use CloudFront caching
-
-### Resource Sizing
-- **Small Teams (<50 users):** t3.small instances
-- **Medium Teams (50-200 users):** t3.medium instances
-- **Large Teams (200+ users):** t3.large+ with auto-scaling
-
-## Security Checklist
-
-- [ ] SSL/TLS certificates configured
-- [ ] Database encryption at rest enabled
-- [ ] VPC security groups properly configured
-- [ ] Secrets stored in environment variables or secrets manager
-- [ ] Regular security updates scheduled
-- [ ] Database backups automated
-- [ ] Okta 2FA enabled for all users
-- [ ] API rate limiting configured
-- [ ] Logs monitored for suspicious activity
 
 ---
 
-For additional support or questions, please open an issue on GitHub.
+## Troubleshooting
+
+### Container won't start
+
+```bash
+docker compose logs backend     # backend errors
+docker compose logs frontend    # frontend errors
+docker compose logs postgres    # database errors
+```
+
+### Database connection issues
+
+```bash
+# Test connectivity from backend container
+docker compose exec backend python -c "import psycopg2; psycopg2.connect('$DATABASE_URL'); print('OK')"
+
+# Open a psql shell
+make shell-db
+```
+
+### Fleet sync fails
+
+```bash
+# Trigger a manual sync and watch logs
+make sync-fleet
+docker compose logs -f backend
+```
+
+Check `/api/fleet/sync-logs` in the HAM UI for detailed error messages.
+
+### Reset everything
+
+```bash
+docker compose down -v   # removes containers AND volumes (wipes database!)
+docker compose up --build -d
+```
