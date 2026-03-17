@@ -4,6 +4,8 @@
 
 HAM is a full-stack hardware asset management tool built for IT teams. It tracks devices across their entire lifecycle — from procurement through retirement — and syncs automatically with your MDM, identity provider, and Apple Business Manager.
 
+👉 **[GETTING_STARTED.md](GETTING_STARTED.md)** — step-by-step guide for IT admins and contributors
+
 ## Features
 
 - **Asset tracking** — laptops, desktops, mobile devices with full lifecycle management
@@ -93,6 +95,8 @@ make start
 - Backend API: http://localhost:8000
 - API docs: http://localhost:8000/docs
 
+For a full step-by-step walkthrough see **[GETTING_STARTED.md](GETTING_STARTED.md)**.
+
 ---
 
 ## Configuration
@@ -146,7 +150,7 @@ IDP_PROVIDER=okta    # okta | azure | google | auth0 (okta fully implemented)
 
 ## Contributing
 
-PRs are welcome! Here's where contributions would have the most impact:
+PRS are welcome! Here's where contributions would have the most impact:
 
 **Biggest barriers to adoption (high priority)**
 - Local auth mode — allow login without an external IdP for evaluation and smaller deployments. See [issue #1](https://github.com/dubprocess/HAM/issues/1).
@@ -163,7 +167,7 @@ PRs are welcome! Here's where contributions would have the most impact:
 - Kubernetes Helm chart
 - Email / PagerDuty / Teams alert channels
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines or [GETTING_STARTED.md](GETTING_STARTED.md) for a full contributor walkthrough.
 
 ---
 
