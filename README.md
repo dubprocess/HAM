@@ -24,6 +24,24 @@ HAM is a full-stack hardware asset management tool built for IT teams. It tracks
 
 ---
 
+## Prerequisites
+
+### What you need to hit the ground running
+
+**Required today:**
+- **Fleet MDM** — device sync, auto-assignment, and lock detection all require a Fleet instance
+- **Okta** — HAM currently requires an OIDC provider to log in. Okta is the only fully implemented provider today
+
+**Optional but recommended:**
+- **Apple Business Manager** — adds procurement data and AppleCare warranty status to your devices
+- **Slack** — enables alert notifications
+
+> **No Okta?** Local auth mode (username/password login with no external IdP) is on the roadmap. Azure AD, Google Workspace, and Auth0 are also planned. See [docs/identity-providers.md](docs/identity-providers.md) if you want to contribute support.
+>
+> **No Fleet?** Jamf Pro support is stubbed and ready for contributors — see [docs/jamf.md](docs/jamf.md).
+
+---
+
 ## Quick Start (Docker Compose)
 
 ### 1. Clone the repo
@@ -46,19 +64,29 @@ Edit `backend/.env` with your credentials. At minimum you need:
 DATABASE_URL=postgresql://assetuser:changeme123@postgres:5432/asset_tracker
 SECRET_KEY=your-random-secret-key
 
-# OIDC login (required)
+# OIDC login (required — Okta fully supported today)
 OIDC_ISSUER=https://your-domain.okta.com/oauth2/default
 OIDC_CLIENT_ID=your_client_id
 OIDC_CLIENT_SECRET=your_client_secret
 OIDC_REDIRECT_URI=http://localhost:3000/callback
+
+# Fleet MDM (required for device sync)
+FLEET_URL=https://your-fleet-instance.com
+FLEET_API_TOKEN=your_fleet_api_token
 ```
 
-See [Integration Setup](#integration-setup) for Fleet, ABM, and Slack configuration.
+See [Integration Setup](#integration-setup) for ABM and Slack configuration.
 
 ### 3. Start
 
 ```bash
 docker compose up --build
+```
+
+Or use the Makefile:
+
+```bash
+make start
 ```
 
 - Frontend: http://localhost:3000
@@ -91,7 +119,7 @@ Asset tags will be generated as `HAM-<serial_number>`. Change to match your org'
 
 ### MDM + Identity Provider
 
-HAM is designed to support pluggable MDM and OIDC providers. Use these env vars to select your provider:
+HAM is designed to support pluggable MDM and OIDC providers:
 
 ```env
 MDM_PROVIDER=fleet   # fleet | jamf (jamf: stub ready, PRs welcome)
@@ -110,6 +138,7 @@ IDP_PROVIDER=okta    # okta | azure | google | auth0 (okta fully implemented)
 | Azure AD / Entra ID | 🚧 PRs welcome | [docs/identity-providers.md](docs/identity-providers.md) |
 | Google Workspace | 🚧 PRs welcome | [docs/identity-providers.md](docs/identity-providers.md) |
 | Auth0 | 🚧 PRs welcome | [docs/identity-providers.md](docs/identity-providers.md) |
+| Local auth (no IdP) | 🚧 Planned | [#2](https://github.com/dubprocess/HAM/issues/2) |
 | Apple Business Manager | ✅ Fully implemented | [docs/abm.md](docs/abm.md) |
 | AppleCare | ✅ Fully implemented | [docs/applecare.md](docs/applecare.md) |
 
@@ -119,20 +148,20 @@ IDP_PROVIDER=okta    # okta | azure | google | auth0 (okta fully implemented)
 
 PRs are welcome! Here's where contributions would have the most impact:
 
+**Biggest barriers to adoption (high priority)**
+- Local auth mode — allow login without an external IdP for evaluation and smaller deployments. See [issue #2](https://github.com/dubprocess/HAM/issues/2).
+- Demo / seed data script — populate fake assets so people can evaluate the UI without a live MDM. See [issue #3](https://github.com/dubprocess/HAM/issues/3).
+
 **MDM providers**
 - Jamf Pro — stub is in `backend/jamf_service.py`, field mappings are written, sync logic needs implementing. See [docs/jamf.md](docs/jamf.md).
 - Mosyle, Kandji, Intune — new `*_service.py` following the same interface as `fleet_service.py`
 
 **Identity providers**
-- Azure AD / Entra ID, Google Workspace, Auth0 — OIDC login likely works already, needs user enrichment adapter. See [docs/identity-providers.md](docs/identity-providers.md).
+- Azure AD, Google Workspace, Auth0 — OIDC login likely works already, needs user enrichment adapter. See [docs/identity-providers.md](docs/identity-providers.md).
 
 **Infrastructure**
 - Kubernetes Helm chart
-- GitHub Actions CI/CD pipeline
-
-**Alerts**
-- Email notifications (warranty expiry, assignments)
-- PagerDuty, Teams webhook support
+- Email / PagerDuty / Teams alert channels
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
@@ -140,7 +169,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Kubernetes
 
-HAM is designed to run on Docker Compose for self-hosted deployments. Kubernetes manifests are on the roadmap — community contributions welcome.
+HAM runs on Docker Compose for self-hosted deployments. Kubernetes manifests are on the roadmap — community contributions welcome.
 
 ---
 
