@@ -8,7 +8,7 @@ HAM is a full-stack hardware asset management tool built for IT teams. It tracks
 
 - **Asset tracking** — laptops, desktops, mobile devices with full lifecycle management
 - **Fleet MDM sync** — auto-import devices, sync assignments, lock/unlock status
-- **Okta SCIM** — user identity enrichment and auto-assignment
+- **Okta OIDC** — user identity enrichment and auto-assignment
 - **Apple Business Manager** — device procurement data, AppleCare warranty status
 - **Dashboard** — platform breakdown, location inventory, warranty expiry alerts
 - **Slack alerts** — warranty expiry, sync failures, unassigned/locked device notifications
@@ -19,7 +19,7 @@ HAM is a full-stack hardware asset management tool built for IT teams. It tracks
 
 - **Backend**: Python FastAPI + PostgreSQL + SQLAlchemy
 - **Frontend**: React
-- **Integrations**: Fleet MDM, Okta SCIM, Apple Business Manager, AppleCare API
+- **Integrations**: Fleet MDM, Okta OIDC, Apple Business Manager, AppleCare API
 - **Deployment**: Docker Compose
 
 ---
@@ -46,11 +46,11 @@ Edit `backend/.env` with your credentials. At minimum you need:
 DATABASE_URL=postgresql://assetuser:changeme123@postgres:5432/asset_tracker
 SECRET_KEY=your-random-secret-key
 
-# Okta OIDC (required for login)
-OKTA_ISSUER=https://your-domain.okta.com/oauth2/default
-OKTA_CLIENT_ID=your_client_id
-OKTA_CLIENT_SECRET=your_client_secret
-OKTA_REDIRECT_URI=http://localhost:3000/callback
+# OIDC login (required)
+OIDC_ISSUER=https://your-domain.okta.com/oauth2/default
+OIDC_CLIENT_ID=your_client_id
+OIDC_CLIENT_SECRET=your_client_secret
+OIDC_REDIRECT_URI=http://localhost:3000/callback
 ```
 
 See [Integration Setup](#integration-setup) for Fleet, ABM, and Slack configuration.
@@ -79,7 +79,7 @@ Configure your office locations as a comma-separated list:
 LOCATIONS=HQ,Branch,Remote
 ```
 
-Defaults to `HQ,Remote` if not set.
+Defaults to `HQ,Remote` if not set. The frontend location filter is built dynamically from this list.
 
 ### Asset Tag Prefix
 
@@ -87,44 +87,60 @@ Defaults to `HQ,Remote` if not set.
 ASSET_TAG_PREFIX=HAM
 ```
 
-Asset tags will be generated as `HAM-<serial_number>`.
+Asset tags will be generated as `HAM-<serial_number>`. Change to match your org's convention.
 
-### MDM / Identity Provider
+### MDM + Identity Provider
 
-HAM currently supports Fleet MDM and Okta. Future versions will support pluggable MDM and OIDC providers.
+HAM is designed to support pluggable MDM and OIDC providers. Use these env vars to select your provider:
 
 ```env
-MDM_PROVIDER=fleet
-IDP_PROVIDER=okta
+MDM_PROVIDER=fleet   # fleet | jamf (jamf: stub ready, PRs welcome)
+IDP_PROVIDER=okta    # okta | azure | google | auth0 (okta fully implemented)
 ```
 
 ---
 
 ## Integration Setup
 
-| Integration | Guide |
-|---|---|
-| Fleet MDM | [docs/fleet.md](docs/fleet.md) |
-| Okta SCIM | [docs/okta.md](docs/okta.md) |
-| Apple Business Manager | [docs/abm.md](docs/abm.md) |
-| AppleCare | [docs/applecare.md](docs/applecare.md) |
+| Integration | Status | Guide |
+|---|---|---|
+| Fleet MDM | ✅ Fully implemented | [docs/fleet.md](docs/fleet.md) |
+| Jamf Pro | 🚧 Stub ready, PRs welcome | [docs/jamf.md](docs/jamf.md) |
+| Okta OIDC | ✅ Fully implemented | [docs/okta.md](docs/okta.md) |
+| Azure AD / Entra ID | 🚧 PRs welcome | [docs/identity-providers.md](docs/identity-providers.md) |
+| Google Workspace | 🚧 PRs welcome | [docs/identity-providers.md](docs/identity-providers.md) |
+| Auth0 | 🚧 PRs welcome | [docs/identity-providers.md](docs/identity-providers.md) |
+| Apple Business Manager | ✅ Fully implemented | [docs/abm.md](docs/abm.md) |
+| AppleCare | ✅ Fully implemented | [docs/applecare.md](docs/applecare.md) |
+
+---
+
+## Contributing
+
+PRs are welcome! Here's where contributions would have the most impact:
+
+**MDM providers**
+- Jamf Pro — stub is in `backend/jamf_service.py`, field mappings are written, sync logic needs implementing. See [docs/jamf.md](docs/jamf.md).
+- Mosyle, Kandji, Intune — new `*_service.py` following the same interface as `fleet_service.py`
+
+**Identity providers**
+- Azure AD / Entra ID, Google Workspace, Auth0 — OIDC login likely works already, needs user enrichment adapter. See [docs/identity-providers.md](docs/identity-providers.md).
+
+**Infrastructure**
+- Kubernetes Helm chart
+- GitHub Actions CI/CD pipeline
+
+**Alerts**
+- Email notifications (warranty expiry, assignments)
+- PagerDuty, Teams webhook support
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
 ## Kubernetes
 
 HAM is designed to run on Docker Compose for self-hosted deployments. Kubernetes manifests are on the roadmap — community contributions welcome.
-
----
-
-## Contributing
-
-PRs are welcome! Areas where contributions are especially useful:
-
-- Additional MDM provider support (Jamf, Mosyle, Kandji, etc.)
-- Additional OIDC provider support (Azure AD, Google Workspace, etc.)
-- Kubernetes Helm chart
-- Additional alert channels (email, PagerDuty, etc.)
 
 ---
 
