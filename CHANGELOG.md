@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 First public open source release.
 
-### Added
+### Core features
 - Full asset lifecycle management (create, assign, return, retire)
 - Fleet MDM sync with nightly scheduling and manual trigger
 - Okta OIDC authentication and user enrichment
@@ -23,13 +23,40 @@ First public open source release.
 - Maintenance records and audit logging
 - File attachments per asset
 - Docker Compose deployment
-- Jamf Pro MDM stub (`backend/jamf_service.py`) with field mappings ready
-- Abstract MDM base class (`backend/base_mdm_service.py`) for contributor guidance
-- Integration docs for Fleet, Okta, ABM, AppleCare, Jamf, and all major OIDC providers
-- GitHub issue templates and CI workflow
+
+### Open source readiness
+- All Foursquare-specific references removed (locations, domains, credentials)
+- `CANONICAL_LOCATIONS` now configurable via `LOCATIONS` env var
+- Asset tag prefix configurable via `ASSET_TAG_PREFIX` env var (default: `HAM`)
+- `OKTA_*` env vars generalized to `OIDC_*` for provider-agnostic naming
+- `IDP_API_TOKEN` replaces `OKTA_API_TOKEN`
+- `MDM_PROVIDER` and `IDP_PROVIDER` env vars added for future provider extensibility
+- Location filter dropdown in frontend now dynamically loaded from `/api/config/locations`
+- New `/api/config/locations` endpoint added to backend
+
+### Contributor infrastructure
+- `backend/base_mdm_service.py` — abstract MDM interface for new provider contributions
+- `backend/jamf_service.py` — Jamf Pro stub with field mappings written, sync logic ready for implementation
+- `docs/fleet.md` — Fleet MDM setup and troubleshooting guide
+- `docs/okta.md` — Okta OIDC + API token setup guide
+- `docs/abm.md` — Apple Business Manager setup guide
+- `docs/applecare.md` — AppleCare rate limiting and troubleshooting
+- `docs/jamf.md` — Jamf Pro contributor guide with full API field mappings
+- `docs/identity-providers.md` — Azure AD, Google Workspace, Auth0 contributor guide
+- `CONTRIBUTING.md` — community contribution guide
+- `SECURITY.md` — responsible disclosure policy
+- `Makefile` — dev shortcuts (`make start`, `make migrate`, `make sync-fleet`, etc.)
+- `.github/workflows/ci.yml` — GitHub Actions CI (lint, test, docker build)
+- `.github/ISSUE_TEMPLATE/` — bug report, feature request, new MDM provider, new IdP provider templates
+
+### Known limitations / open issues
+- Login requires an OIDC provider (Okta) — local auth mode planned ([#1](https://github.com/dubprocess/HAM/issues/1))
+- No seed data / demo mode — planned ([#2](https://github.com/dubprocess/HAM/issues/2))
+- Jamf Pro sync not yet implemented — stub + field mappings ready for contributors
+- Azure AD, Google Workspace, Auth0 identity providers not yet implemented
 
 ### Architecture
 - Backend: Python 3.11 + FastAPI + SQLAlchemy + PostgreSQL
 - Frontend: React 18 + React Query + React Router
-- Integrations: Fleet MDM, Okta SCIM, Apple Business Manager, AppleCare API, Slack
-- Configurable locations, asset tag prefix, MDM provider, and identity provider via env vars
+- Integrations: Fleet MDM, Okta OIDC + SCIM, Apple Business Manager, AppleCare API, Slack
+- Deployment: Docker Compose
