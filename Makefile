@@ -1,61 +1,90 @@
-.PHONY: start stop build logs shell-backend shell-db migrate test lint
+.PHONY: help start start-d stop build logs logs-backend shell-backend shell-db migrate migration test lint sync-fleet sync-abm scheduler-status seed
 
-# Start all services
+# Default target — show available commands
+help:
+	@echo ""
+	@echo "HAM — Hardware Asset Manager"
+	@echo "============================="
+	@echo ""
+	@echo "Usage: make <target>"
+	@echo ""
+	@echo "Dev:"
+	@echo "  start             docker compose up --build (foreground)"
+	@echo "  start-d           docker compose up --build (detached)"
+	@echo "  stop              docker compose down"
+	@echo "  build             rebuild images without cache"
+	@echo "  logs              tail all service logs"
+	@echo "  logs-backend      tail backend logs only"
+	@echo ""
+	@echo "Database:"
+	@echo "  shell-db          open psql shell"
+	@echo "  migrate           run alembic migrations (upgrade head)"
+	@echo "  migration msg=... create a new alembic migration"
+	@echo "  seed              populate database with demo data (see issue #2)"
+	@echo ""
+	@echo "Backend:"
+	@echo "  shell-backend     open bash shell in backend container"
+	@echo "  test              run pytest"
+	@echo "  lint              run flake8"
+	@echo ""
+	@echo "Sync:"
+	@echo "  sync-fleet        trigger a Fleet MDM sync"
+	@echo "  sync-abm          trigger an ABM sync"
+	@echo "  scheduler-status  check nightly sync schedule"
+	@echo ""
+
+# ── Dev ───────────────────────────────────────────────────────────────────────
+
 start:
 	docker compose up --build
 
-# Start in detached mode
 start-d:
 	docker compose up --build -d
 
-# Stop all services
 stop:
 	docker compose down
 
-# Rebuild images without cache
 build:
 	docker compose build --no-cache
 
-# Tail logs
 logs:
 	docker compose logs -f
 
-# Backend logs only
 logs-backend:
 	docker compose logs -f backend
 
-# Open a shell in the backend container
-shell-backend:
-	docker compose exec backend bash
+# ── Database ──────────────────────────────────────────────────────────────────
 
-# Open a psql shell
 shell-db:
 	docker compose exec postgres psql -U assetuser -d asset_tracker
 
-# Run database migrations
 migrate:
 	docker compose exec backend alembic upgrade head
 
-# Create a new migration
 migration:
 	docker compose exec backend alembic revision --autogenerate -m "$(msg)"
 
-# Run backend tests
+seed:
+	@echo "Demo seed data not yet implemented — see https://github.com/dubprocess/HAM/issues/2"
+
+# ── Backend ───────────────────────────────────────────────────────────────────
+
+shell-backend:
+	docker compose exec backend bash
+
 test:
 	docker compose exec backend pytest
 
-# Run backend linting
 lint:
 	docker compose exec backend python -m flake8 . --max-line-length=120 --exclude=migrations,venv
 
-# Trigger a Fleet sync manually
+# ── Sync ──────────────────────────────────────────────────────────────────────
+
 sync-fleet:
-	curl -X POST http://localhost:8000/api/fleet/sync
+	curl -s -X POST http://localhost:8000/api/fleet/sync | python3 -m json.tool
 
-# Trigger an ABM sync manually
 sync-abm:
-	curl -X POST http://localhost:8000/api/abm/sync
+	curl -s -X POST http://localhost:8000/api/abm/sync | python3 -m json.tool
 
-# Check scheduler status
 scheduler-status:
-	curl http://localhost:8000/api/scheduler/status | python3 -m json.tool
+	curl -s http://localhost:8000/api/scheduler/status | python3 -m json.tool
