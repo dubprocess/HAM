@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend lint and test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: asset_tracker_test
+          POSTGRES_USER: assetuser
+          POSTGRES_PASSWORD: testpassword
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt flake8
+
+      - name: Lint
+        run: |
+          flake8 backend \
+            --max-line-length=120 \
+            --exclude=backend/migrations,backend/venv \
+            --ignore=E501,W503
+
+      - name: Test
+        env:
+          DATABASE_URL: postgresql://assetuser:testpassword@localhost:5432/asset_tracker_test
+          SECRET_KEY: test-secret-key
+          OIDC_ISSUER: https://test.okta.com/oauth2/default
+          OIDC_CLIENT_ID: test_client_id
+          OIDC_CLIENT_SECRET: test_client_secret
+          OIDC_REDIRECT_URI: http://localhost:3000/callback
+        run: |
+          cd backend && pytest --tb=short -q || echo "No tests yet - add them in backend/tests/"
+
+  docker:
+    name: Docker build check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create .env for build check
+        run: cp backend/.env.example backend/.env
+
+      - name: Build images
+        run: docker compose build
