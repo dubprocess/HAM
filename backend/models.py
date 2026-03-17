@@ -60,6 +60,8 @@ class Asset(Base):
     assigned_username = Column(String(200))
     department = Column(String(200))
     location = Column(String(200))
+    location_override = Column(Boolean, default=False)  # True = IT manually set location, Fleet sync won't overwrite
+    storage_location = Column(String(200))  # Sub-location within an office (e.g. "IT Room Shelf 3")
     assignment_date = Column(DateTime)
     assignment_override = Column(Boolean, default=False)
     
@@ -210,3 +212,14 @@ class ABMSyncLog(Base):
     status = Column(String(50))
     
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class AlertSetting(Base):
+    """Key-value store for alert configuration."""
+    __tablename__ = "alert_settings"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, nullable=False, index=True)
+    value = Column(String(500), nullable=False)
+    
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
