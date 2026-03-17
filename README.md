@@ -138,7 +138,7 @@ IDP_PROVIDER=okta    # okta | azure | google | auth0 (okta fully implemented)
 | Azure AD / Entra ID | 🚧 PRs welcome | [docs/identity-providers.md](docs/identity-providers.md) |
 | Google Workspace | 🚧 PRs welcome | [docs/identity-providers.md](docs/identity-providers.md) |
 | Auth0 | 🚧 PRs welcome | [docs/identity-providers.md](docs/identity-providers.md) |
-| Local auth (no IdP) | 🚧 Planned | [#2](https://github.com/dubprocess/HAM/issues/2) |
+| Local auth (no IdP) | 🚧 Planned | [#1](https://github.com/dubprocess/HAM/issues/1) |
 | Apple Business Manager | ✅ Fully implemented | [docs/abm.md](docs/abm.md) |
 | AppleCare | ✅ Fully implemented | [docs/applecare.md](docs/applecare.md) |
 
@@ -149,8 +149,8 @@ IDP_PROVIDER=okta    # okta | azure | google | auth0 (okta fully implemented)
 PRs are welcome! Here's where contributions would have the most impact:
 
 **Biggest barriers to adoption (high priority)**
-- Local auth mode — allow login without an external IdP for evaluation and smaller deployments. See [issue #2](https://github.com/dubprocess/HAM/issues/2).
-- Demo / seed data script — populate fake assets so people can evaluate the UI without a live MDM. See [issue #3](https://github.com/dubprocess/HAM/issues/3).
+- Local auth mode — allow login without an external IdP for evaluation and smaller deployments. See [issue #1](https://github.com/dubprocess/HAM/issues/1).
+- Demo / seed data script — populate fake assets so people can evaluate the UI without a live MDM. See [issue #2](https://github.com/dubprocess/HAM/issues/2).
 
 **MDM providers**
 - Jamf Pro — stub is in `backend/jamf_service.py`, field mappings are written, sync logic needs implementing. See [docs/jamf.md](docs/jamf.md).
@@ -164,6 +164,12 @@ PRs are welcome! Here's where contributions would have the most impact:
 - Email / PagerDuty / Teams alert channels
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+---
+
+## Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for Docker Compose, bare metal, AWS, and Google Cloud deployment guides.
 
 ---
 
