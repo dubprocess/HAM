@@ -1,19 +1,33 @@
 #!/bin/bash
 
-echo "🚀 IT Inventory - Quick Start Script"
-echo "========================================"
+echo "🚀 HAM — Hardware Asset Manager"
+echo "================================="
 echo ""
 
-# Check if .env exists
-if [ ! -f .env ]; then
-    echo "⚠️  .env file not found. Creating from example..."
-    cp backend/.env.example .env
-    echo "✅ Created .env file. Please edit it with your configuration:"
-    echo "   - Okta OIDC credentials"
-    echo "   - Fleet MDM URL and API token"
-    echo "   - Database settings (optional, defaults work for local dev)"
+# Check if backend/.env exists
+if [ ! -f backend/.env ]; then
+    echo "⚠️  backend/.env not found. Creating from example..."
+    cp backend/.env.example backend/.env
     echo ""
-    echo "After editing .env, run this script again."
+    echo "✅ Created backend/.env"
+    echo ""
+    echo "Before starting, edit backend/.env with your credentials:"
+    echo ""
+    echo "  Required:"
+    echo "    OIDC_ISSUER        — your Okta (or other OIDC provider) issuer URL"
+    echo "    OIDC_CLIENT_ID     — your OIDC client ID"
+    echo "    OIDC_CLIENT_SECRET — your OIDC client secret"
+    echo "    FLEET_URL          — your Fleet MDM instance URL"
+    echo "    FLEET_API_TOKEN    — your Fleet API token"
+    echo "    SECRET_KEY         — a random secret key (run: openssl rand -hex 32)"
+    echo ""
+    echo "  Optional:"
+    echo "    ABM_CLIENT_ID / ABM_KEY_ID / ABM_PRIVATE_KEY_PATH — Apple Business Manager"
+    echo "    SLACK_WEBHOOK_URL  — Slack alerts"
+    echo "    LOCATIONS          — comma-separated office locations (default: HQ,Remote)"
+    echo "    ASSET_TAG_PREFIX   — asset tag prefix (default: HAM)"
+    echo ""
+    echo "Once configured, run this script again."
     exit 1
 fi
 
@@ -22,51 +36,58 @@ echo "📋 Checking prerequisites..."
 # Check Docker
 if ! command -v docker &> /dev/null; then
     echo "❌ Docker is not installed. Please install Docker first."
+    echo "   https://docs.docker.com/get-docker/"
     exit 1
 fi
 echo "✅ Docker found"
 
-# Check Docker Compose
-if ! command -v docker-compose &> /dev/null; then
+# Check Docker Compose (v2 plugin style)
+if docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+else
     echo "❌ Docker Compose is not installed. Please install Docker Compose first."
+    echo "   https://docs.docker.com/compose/install/"
     exit 1
 fi
-echo "✅ Docker Compose found"
+echo "✅ Docker Compose found ($COMPOSE_CMD)"
 
 echo ""
 echo "🏗️  Building and starting services..."
 echo ""
 
-# Build and start services
-docker-compose up -d --build
+$COMPOSE_CMD up -d --build
 
 echo ""
 echo "⏳ Waiting for services to be ready..."
 sleep 10
 
-# Check if services are running
-if docker-compose ps | grep -q "Up"; then
+# Check if backend is healthy
+if $COMPOSE_CMD ps | grep -q "Up"; then
     echo ""
-    echo "✅ Application is running!"
+    echo "✅ HAM is running!"
     echo ""
-    echo "📍 Access Points:"
+    echo "📍 Access:"
     echo "   Frontend:  http://localhost:3000"
-    echo "   Backend:   http://localhost:8000"
-    echo "   API Docs:  http://localhost:8000/docs"
+    echo "   API:       http://localhost:8000"
+    echo "   API docs:  http://localhost:8000/docs"
     echo ""
-    echo "🔐 Next Steps:"
-    echo "   1. Navigate to http://localhost:3000"
-    echo "   2. Sign in with your Okta credentials"
-    echo "   3. Go to 'Fleet Sync' and click 'Sync Now' to import devices"
+    echo "🔐 Next steps:"
+    echo "   1. Open http://localhost:3000"
+    echo "   2. Sign in with your OIDC provider"
+    echo "   3. Go to Fleet Sync → Sync Now to import devices"
+    echo "   4. (Optional) Go to ABM Sync → Sync Now to enrich with Apple data"
     echo ""
-    echo "📊 View logs:"
-    echo "   docker-compose logs -f"
-    echo ""
-    echo "🛑 Stop application:"
-    echo "   docker-compose down"
+    echo "🛠️  Useful commands:"
+    echo "   make logs         — tail all logs"
+    echo "   make sync-fleet   — trigger a Fleet sync"
+    echo "   make sync-abm     — trigger an ABM sync"
+    echo "   make stop         — stop all services"
     echo ""
 else
-    echo "❌ Failed to start services. Check logs with:"
-    echo "   docker-compose logs"
+    echo ""
+    echo "❌ Services failed to start. Check logs with:"
+    echo "   $COMPOSE_CMD logs"
     exit 1
 fi
