@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/public/ham-logo.svg" alt="HAM Logo" width="200">
+</p>
+
 # HAM — Hardware Asset Manager
 
 > Open source IT hardware asset tracking with Fleet MDM, Okta, and Apple Business Manager integration.
@@ -150,7 +154,7 @@ IDP_PROVIDER=okta    # okta | azure | google | auth0 (okta fully implemented)
 
 ## Contributing
 
-PRS are welcome! Here's where contributions would have the most impact:
+PRs are welcome! Here's where contributions would have the most impact:
 
 **Biggest barriers to adoption (high priority)**
 - Local auth mode — allow login without an external IdP for evaluation and smaller deployments. See [issue #1](https://github.com/dubprocess/HAM/issues/1).
