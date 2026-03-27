@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [1.0.0] — 2026-03-17
+## [1.0.0] - 2026-03-17
 
 First public open source release.
 
@@ -23,37 +23,41 @@ First public open source release.
 - Maintenance records and audit logging
 - File attachments per asset
 - Docker Compose deployment
+- Local auth mode (username/password login, no external IdP required)
+- Demo seed data script (make seed)
 
 ### Open source readiness
-- All Foursquare-specific references removed (locations, domains, credentials)
-- `CANONICAL_LOCATIONS` now configurable via `LOCATIONS` env var
-- Asset tag prefix configurable via `ASSET_TAG_PREFIX` env var (default: `HAM`)
-- `OKTA_*` env vars generalized to `OIDC_*` for provider-agnostic naming
-- `IDP_API_TOKEN` replaces `OKTA_API_TOKEN`
-- `MDM_PROVIDER` and `IDP_PROVIDER` env vars added for future provider extensibility
-- Location filter dropdown in frontend now dynamically loaded from `/api/config/locations`
-- New `/api/config/locations` endpoint added to backend
+- All internal references removed (locations, domains, credentials)
+- Locations configurable via LOCATIONS env var
+- Asset tag prefix configurable via ASSET_TAG_PREFIX env var (default: HAM)
+- OKTA_* env vars replaced with OIDC_* for provider-agnostic naming
+- IDP_API_TOKEN replaces internal API token var
+- MDM_PROVIDER and IDP_PROVIDER env vars added for future provider extensibility
+- Location filter dropdown dynamically loaded from /api/config/locations
 
 ### Contributor infrastructure
-- `backend/base_mdm_service.py` — abstract MDM interface for new provider contributions
-- `backend/jamf_service.py` — Jamf Pro stub with field mappings written, sync logic ready for implementation
-- `docs/fleet.md` — Fleet MDM setup and troubleshooting guide
-- `docs/okta.md` — Okta OIDC + API token setup guide
-- `docs/abm.md` — Apple Business Manager setup guide
-- `docs/applecare.md` — AppleCare rate limiting and troubleshooting
-- `docs/jamf.md` — Jamf Pro contributor guide with full API field mappings
-- `docs/identity-providers.md` — Azure AD, Google Workspace, Auth0 contributor guide
-- `CONTRIBUTING.md` — community contribution guide
-- `SECURITY.md` — responsible disclosure policy
-- `Makefile` — dev shortcuts (`make start`, `make migrate`, `make sync-fleet`, etc.)
-- `.github/workflows/ci.yml` — GitHub Actions CI (lint, test, docker build)
-- `.github/ISSUE_TEMPLATE/` — bug report, feature request, new MDM provider, new IdP provider templates
+- backend/base_mdm_service.py - abstract MDM interface for new provider contributions
+- backend/jamf_service.py - Jamf Pro stub with field mappings written, sync logic ready for implementation
+- backend/seed_data.py - demo seed data script
+- docs/fleet.md - Fleet MDM setup and troubleshooting guide
+- docs/okta.md - Okta OIDC + API token setup guide
+- docs/abm.md - Apple Business Manager setup guide
+- docs/applecare.md - AppleCare rate limiting and troubleshooting
+- docs/jamf.md - Jamf Pro contributor guide with full API field mappings
+- docs/identity-providers.md - Azure AD, Google Workspace, Auth0 contributor guide
+- docs/local-auth.md - local auth mode setup guide
+- CONTRIBUTING.md - community contribution guide
+- SECURITY.md - responsible disclosure policy
+- CODE_OF_CONDUCT.md - Contributor Covenant v2.1
+- Makefile - dev shortcuts (make start, make migrate, make seed, make sync-fleet, etc.)
+- .github/workflows/ci.yml - GitHub Actions CI (lint, test, docker build)
+- .github/ISSUE_TEMPLATE/ - bug report, feature request, new MDM provider, new IdP provider templates
+- .github/PULL_REQUEST_TEMPLATE.md - PR template
 
-### Known limitations / open issues
-- Login requires an OIDC provider (Okta) — local auth mode planned ([#1](https://github.com/dubprocess/HAM/issues/1))
-- No seed data / demo mode — planned ([#2](https://github.com/dubprocess/HAM/issues/2))
-- Jamf Pro sync not yet implemented — stub + field mappings ready for contributors
+### Known limitations
+- Jamf Pro sync not yet implemented - stub + field mappings ready for contributors
 - Azure AD, Google Workspace, Auth0 identity providers not yet implemented
+- Kubernetes Helm chart not yet available
 
 ### Architecture
 - Backend: Python 3.11 + FastAPI + SQLAlchemy + PostgreSQL
