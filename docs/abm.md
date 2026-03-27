@@ -20,7 +20,7 @@ HAM integrates with Apple Business Manager to pull device procurement data and e
 ```bash
 mkdir -p keys
 chmod 700 keys
-touch keys/abm_private_key.pem && chmod 700 keys/abm_private_key.pem
+touch keys/abm_private_key.pem && chmod 600 keys/abm_private_key.pem
 cp ~/Downloads/AuthKey_XXXXXXXX.p8 keys/abm_private_key.pem
 ```
 
