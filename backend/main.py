@@ -89,11 +89,11 @@ def cleanup_stale_sync_logs():
         for log in db.query(FleetSyncLog).filter(FleetSyncLog.status == 'running').all():
             log.status = 'failed'
             log.sync_completed = log.sync_started
-            log.errors = 'Interrupted — process restarted'
+            log.errors = 'Interrupted - process restarted'
         for log in db.query(ABMSyncLog).filter(ABMSyncLog.status == 'running').all():
             log.status = 'failed'
             log.sync_completed = log.sync_started
-            log.errors = 'Interrupted — process restarted'
+            log.errors = 'Interrupted - process restarted'
         db.commit()
     except Exception as e:
         print(f"Cleanup error: {e}")
@@ -167,7 +167,7 @@ async def scheduled_fleet_sync():
     try:
         fleet_service = _create_fleet_service()
         if not os.getenv("FLEET_URL") or not os.getenv("FLEET_API_TOKEN"):
-            logger.error("Scheduled sync skipped — FLEET_URL or FLEET_API_TOKEN not configured")
+            logger.error("Scheduled sync skipped - FLEET_URL or FLEET_API_TOKEN not configured")
             return
         stats = await fleet_service.sync_devices(db, 'scheduled_sync')
         logger.info(f"Scheduled Fleet sync completed: {stats}")
@@ -189,7 +189,7 @@ async def startup_event():
         )
         logger.info("OIDC authentication configured")
     else:
-        logger.info("LOCAL_AUTH=true — OIDC authentication disabled, using local auth")
+        logger.info("LOCAL_AUTH=true - OIDC authentication disabled, using local auth")
 
     sync_hour = int(os.getenv("FLEET_SYNC_HOUR", "21"))
     sync_minute = int(os.getenv("FLEET_SYNC_MINUTE", "0"))
@@ -222,7 +222,7 @@ def get_db():
 
 
 # ------------------------------------------------------------------
-# Local Auth endpoints
+# Local Auth endpoints (unauthenticated by design)
 # ------------------------------------------------------------------
 
 class LocalLoginRequest(BaseModel):
@@ -244,7 +244,7 @@ class LocalUserCreate(BaseModel):
 
 @app.get("/api/auth/mode")
 async def get_auth_mode():
-    """Returns the current auth mode so the frontend can adapt its login UI."""
+    """Returns the current auth mode so the frontend can adapt its login UI. Public endpoint."""
     return {"local_auth": LOCAL_AUTH}
 
 
@@ -252,7 +252,7 @@ async def get_auth_mode():
 async def local_login(credentials: LocalLoginRequest, db: Session = Depends(get_db)):
     """
     Local username/password login. Only available when LOCAL_AUTH=true.
-    Returns a signed JWT on success.
+    Returns a signed JWT on success. Public endpoint (it's the login route).
     """
     if not LOCAL_AUTH:
         raise HTTPException(
@@ -290,7 +290,7 @@ async def local_login(credentials: LocalLoginRequest, db: Session = Depends(get_
 async def local_setup(setup: LocalSetupRequest, db: Session = Depends(get_db)):
     """
     Create the first local admin user. Only works if no local users exist.
-    After the first user is created this endpoint returns 400.
+    Public endpoint intentionally - it's only usable once on a fresh install.
     """
     if not LOCAL_AUTH:
         raise HTTPException(status_code=400, detail="Local auth is not enabled")
@@ -414,30 +414,64 @@ def parse_status_filter(status_str: str) -> Optional[AssetStatus]:
 # ------------------------------------------------------------------
 
 class AssetCreate(BaseModel):
-    asset_tag: str; serial_number: str; manufacturer: str; model: str; device_type: str
-    os_type: Optional[str] = None; os_version: Optional[str] = None; processor: Optional[str] = None
-    ram_gb: Optional[int] = None; storage_gb: Optional[int] = None; screen_size: Optional[float] = None
-    purchase_date: Optional[datetime] = None; purchase_cost: Optional[float] = None
-    supplier: Optional[str] = None; warranty_expiration: Optional[datetime] = None; notes: Optional[str] = None
+    asset_tag: str
+    serial_number: str
+    manufacturer: str
+    model: str
+    device_type: str
+    os_type: Optional[str] = None
+    os_version: Optional[str] = None
+    processor: Optional[str] = None
+    ram_gb: Optional[int] = None
+    storage_gb: Optional[int] = None
+    screen_size: Optional[float] = None
+    purchase_date: Optional[datetime] = None
+    purchase_cost: Optional[float] = None
+    supplier: Optional[str] = None
+    warranty_expiration: Optional[datetime] = None
+    notes: Optional[str] = None
+
 
 class AssetUpdate(BaseModel):
-    asset_tag: Optional[str] = None; manufacturer: Optional[str] = None; model: Optional[str] = None
-    device_type: Optional[str] = None; os_type: Optional[str] = None; os_version: Optional[str] = None
-    processor: Optional[str] = None; ram_gb: Optional[int] = None; storage_gb: Optional[int] = None
-    screen_size: Optional[float] = None; purchase_date: Optional[datetime] = None
-    purchase_cost: Optional[float] = None; supplier: Optional[str] = None
-    warranty_expiration: Optional[datetime] = None; department: Optional[str] = None
-    location: Optional[str] = None; status: Optional[AssetStatus] = None
-    condition: Optional[AssetCondition] = None; notes: Optional[str] = None
+    asset_tag: Optional[str] = None
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    device_type: Optional[str] = None
+    os_type: Optional[str] = None
+    os_version: Optional[str] = None
+    processor: Optional[str] = None
+    ram_gb: Optional[int] = None
+    storage_gb: Optional[int] = None
+    screen_size: Optional[float] = None
+    purchase_date: Optional[datetime] = None
+    purchase_cost: Optional[float] = None
+    supplier: Optional[str] = None
+    warranty_expiration: Optional[datetime] = None
+    department: Optional[str] = None
+    location: Optional[str] = None
+    status: Optional[AssetStatus] = None
+    condition: Optional[AssetCondition] = None
+    notes: Optional[str] = None
+
 
 class AssetAssign(BaseModel):
-    assigned_email: EmailStr; assigned_to: str; assigned_username: Optional[str] = None
-    department: Optional[str] = None; location: Optional[str] = None; assignment_override: bool = False
+    assigned_email: EmailStr
+    assigned_to: str
+    assigned_username: Optional[str] = None
+    department: Optional[str] = None
+    location: Optional[str] = None
+    assignment_override: bool = False
+
 
 class MaintenanceCreate(BaseModel):
-    maintenance_type: MaintenanceType; title: str; description: Optional[str] = None
-    start_date: datetime; completion_date: Optional[datetime] = None; cost: Optional[float] = None
-    vendor: Optional[str] = None; notes: Optional[str] = None
+    maintenance_type: MaintenanceType
+    title: str
+    description: Optional[str] = None
+    start_date: datetime
+    completion_date: Optional[datetime] = None
+    cost: Optional[float] = None
+    vendor: Optional[str] = None
+    notes: Optional[str] = None
 
 
 # ------------------------------------------------------------------
@@ -446,19 +480,32 @@ class MaintenanceCreate(BaseModel):
 
 @app.get("/")
 async def root():
+    """Public health check endpoint."""
     return {"message": "HAM - Hardware Asset Management API", "version": "1.5.0", "local_auth": LOCAL_AUTH}
+
 
 @app.get("/api/health")
 async def health_check():
+    """Public health check endpoint."""
     return {"status": "healthy", "timestamp": datetime.utcnow(), "local_auth": LOCAL_AUTH}
 
+
+@app.get("/api/config/locations")
+async def get_locations():
+    """Public endpoint - returns configured locations for frontend dropdown."""
+    locations_env = os.getenv("LOCATIONS", "HQ,Remote")
+    locations = [loc.strip() for loc in locations_env.split(",") if loc.strip()]
+    return {"locations": locations}
+
+
 @app.get("/api/scheduler/status")
-async def get_scheduler_status():
+async def get_scheduler_status(current_user: dict = Depends(get_current_user)):
     if not scheduler.running:
         return {"enabled": False, "message": "Scheduler not running"}
     return {"enabled": True, "jobs": [{"id": j.id, "name": j.name,
         "next_run": j.next_run_time.isoformat() if j.next_run_time else None,
         "trigger": str(j.trigger)} for j in scheduler.get_jobs()]}
+
 
 @app.get("/api/assets")
 async def list_assets(
@@ -466,7 +513,9 @@ async def list_assets(
     device_type: Optional[str] = None, platform: Optional[str] = None,
     assigned_email: Optional[str] = None, search: Optional[str] = None,
     warranty: Optional[str] = None, fleet: Optional[str] = None,
-    location: Optional[str] = None, db: Session = Depends(get_db), current_user: dict = None
+    location: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     try:
         query = db.query(Asset)
@@ -498,152 +547,284 @@ async def list_assets(
         print(f"Asset list error: {e}"); traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to load assets: {str(e)}")
 
+
 @app.get("/api/assets/{asset_id}")
-async def get_asset(asset_id: int, db: Session = Depends(get_db), current_user: dict = None):
+async def get_asset(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset: raise HTTPException(status_code=404, detail="Asset not found")
     return asset
 
+
 @app.post("/api/assets")
-async def create_asset(asset_data: AssetCreate, db: Session = Depends(get_db), current_user: dict = None):
+async def create_asset(
+    asset_data: AssetCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     existing = db.query(Asset).filter(Asset.serial_number == asset_data.serial_number).first()
     if existing: raise HTTPException(status_code=400, detail="Asset with this serial number already exists")
-    asset = Asset(**asset_data.dict(), created_by='system', updated_by='system')
+    asset = Asset(**asset_data.dict(), created_by=current_user.get('email', 'system'), updated_by=current_user.get('email', 'system'))
     db.add(asset)
-    db.add(AuditLog(asset=asset, action='created', user_email='system', user_name='system', timestamp=datetime.utcnow()))
-    db.commit(); db.refresh(asset)
+    db.add(AuditLog(asset=asset, action='created', user_email=current_user.get('email', 'system'), user_name=current_user.get('name', 'system'), timestamp=datetime.utcnow()))
+    db.commit()
+    db.refresh(asset)
     return asset
 
+
 @app.put("/api/assets/{asset_id}")
-async def update_asset(asset_id: int, asset_data: AssetUpdate, db: Session = Depends(get_db), current_user: dict = None):
+async def update_asset(
+    asset_id: int,
+    asset_data: AssetUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset: raise HTTPException(status_code=404, detail="Asset not found")
     changes = []
     for field, value in asset_data.dict(exclude_unset=True).items():
         if value is not None and getattr(asset, field) != value:
-            old_value = getattr(asset, field); setattr(asset, field, value)
+            old_value = getattr(asset, field)
+            setattr(asset, field, value)
             changes.append(f"{field}: {old_value} -> {value}")
     if changes:
-        asset.updated_by = 'system'
-        db.add(AuditLog(asset=asset, action='updated', new_value='; '.join(changes), user_email='system', user_name='system', timestamp=datetime.utcnow()))
-    db.commit(); db.refresh(asset)
+        asset.updated_by = current_user.get('email', 'system')
+        db.add(AuditLog(asset=asset, action='updated', new_value='; '.join(changes), user_email=current_user.get('email', 'system'), user_name=current_user.get('name', 'system'), timestamp=datetime.utcnow()))
+    db.commit()
+    db.refresh(asset)
     return asset
+
 
 @app.post("/api/assets/{asset_id}/assign")
-async def assign_asset(asset_id: int, assignment: AssetAssign, db: Session = Depends(get_db), current_user: dict = None):
+async def assign_asset(
+    asset_id: int,
+    assignment: AssetAssign,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset: raise HTTPException(status_code=404, detail="Asset not found")
     old_email = asset.assigned_email
-    asset.assigned_email = assignment.assigned_email; asset.assigned_to = assignment.assigned_to
-    asset.assigned_username = assignment.assigned_username; asset.department = assignment.department
-    asset.location = assignment.location; asset.assignment_date = datetime.utcnow()
-    asset.status = AssetStatus.ASSIGNED; asset.assignment_override = assignment.assignment_override
-    asset.updated_by = 'system'
-    db.add(AuditLog(asset=asset, action='assigned', field_name='assigned_email', old_value=old_email, new_value=assignment.assigned_email, user_email='system', user_name='system', timestamp=datetime.utcnow()))
-    db.commit(); db.refresh(asset)
+    asset.assigned_email = assignment.assigned_email
+    asset.assigned_to = assignment.assigned_to
+    asset.assigned_username = assignment.assigned_username
+    asset.department = assignment.department
+    asset.location = assignment.location
+    asset.assignment_date = datetime.utcnow()
+    asset.status = AssetStatus.ASSIGNED
+    asset.assignment_override = assignment.assignment_override
+    asset.updated_by = current_user.get('email', 'system')
+    db.add(AuditLog(asset=asset, action='assigned', field_name='assigned_email', old_value=old_email, new_value=assignment.assigned_email, user_email=current_user.get('email', 'system'), user_name=current_user.get('name', 'system'), timestamp=datetime.utcnow()))
+    db.commit()
+    db.refresh(asset)
     return asset
+
 
 @app.post("/api/assets/{asset_id}/return")
-async def return_asset(asset_id: int, db: Session = Depends(get_db), current_user: dict = None):
+async def return_asset(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset: raise HTTPException(status_code=404, detail="Asset not found")
     old_email = asset.assigned_email
-    asset.assigned_email = None; asset.assigned_to = None; asset.assigned_username = None
-    asset.assignment_date = None; asset.status = AssetStatus.AVAILABLE
-    asset.assignment_override = False; asset.updated_by = 'system'
-    db.add(AuditLog(asset=asset, action='returned', field_name='assigned_email', old_value=old_email, new_value=None, user_email='system', user_name='system', timestamp=datetime.utcnow()))
-    db.commit(); db.refresh(asset)
+    asset.assigned_email = None
+    asset.assigned_to = None
+    asset.assigned_username = None
+    asset.assignment_date = None
+    asset.status = AssetStatus.AVAILABLE
+    asset.assignment_override = False
+    asset.updated_by = current_user.get('email', 'system')
+    db.add(AuditLog(asset=asset, action='returned', field_name='assigned_email', old_value=old_email, new_value=None, user_email=current_user.get('email', 'system'), user_name=current_user.get('name', 'system'), timestamp=datetime.utcnow()))
+    db.commit()
+    db.refresh(asset)
     return asset
 
+
 @app.delete("/api/assets/{asset_id}")
-async def delete_asset(asset_id: int, db: Session = Depends(get_db), current_user: dict = None):
+async def delete_asset(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset: raise HTTPException(status_code=404, detail="Asset not found")
-    asset.status = AssetStatus.RETIRED; asset.updated_by = 'system'
-    db.add(AuditLog(asset=asset, action='retired', user_email='system', user_name='system', timestamp=datetime.utcnow()))
+    asset.status = AssetStatus.RETIRED
+    asset.updated_by = current_user.get('email', 'system')
+    db.add(AuditLog(asset=asset, action='retired', user_email=current_user.get('email', 'system'), user_name=current_user.get('name', 'system'), timestamp=datetime.utcnow()))
     db.commit()
     return {"message": "Asset retired successfully"}
 
+
 @app.get("/api/assets/{asset_id}/maintenance")
-async def list_maintenance_records(asset_id: int, db: Session = Depends(get_db), current_user: dict = None):
+async def list_maintenance_records(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset: raise HTTPException(status_code=404, detail="Asset not found")
     return db.query(MaintenanceRecord).filter(MaintenanceRecord.asset_id == asset_id).order_by(MaintenanceRecord.start_date.desc()).all()
 
+
 @app.post("/api/assets/{asset_id}/maintenance")
-async def create_maintenance_record(asset_id: int, maintenance: MaintenanceCreate, db: Session = Depends(get_db), current_user: dict = None):
+async def create_maintenance_record(
+    asset_id: int,
+    maintenance: MaintenanceCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset: raise HTTPException(status_code=404, detail="Asset not found")
-    record = MaintenanceRecord(asset_id=asset_id, **maintenance.dict(), created_by='system', performed_by='system')
+    record = MaintenanceRecord(asset_id=asset_id, **maintenance.dict(), created_by=current_user.get('email', 'system'), performed_by=current_user.get('email', 'system'))
     db.add(record)
-    db.add(AuditLog(asset=asset, action='maintenance_added', new_value=f"{maintenance.maintenance_type}: {maintenance.title}", user_email='system', user_name='system', timestamp=datetime.utcnow()))
-    db.commit(); db.refresh(record)
+    db.add(AuditLog(asset=asset, action='maintenance_added', new_value=f"{maintenance.maintenance_type}: {maintenance.title}", user_email=current_user.get('email', 'system'), user_name=current_user.get('name', 'system'), timestamp=datetime.utcnow()))
+    db.commit()
+    db.refresh(record)
     return record
 
+
 @app.get("/api/assets/{asset_id}/audit")
-async def get_audit_log(asset_id: int, db: Session = Depends(get_db), current_user: dict = None):
+async def get_audit_log(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     asset = db.query(Asset).filter(Asset.id == asset_id).first()
     if not asset: raise HTTPException(status_code=404, detail="Asset not found")
     return db.query(AuditLog).filter(AuditLog.asset_id == asset_id).order_by(AuditLog.timestamp.desc()).all()
 
+
 @app.post("/api/fleet/sync")
-async def trigger_fleet_sync(db: Session = Depends(get_db), current_user: dict = None):
-    stats = await _create_fleet_service().sync_devices(db, 'system')
+async def trigger_fleet_sync(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    stats = await _create_fleet_service().sync_devices(db, current_user.get('email', 'system'))
     return {"message": "Fleet sync completed", "stats": stats}
 
+
 @app.get("/api/fleet/sync-logs")
-async def get_fleet_sync_logs(limit: int = 10, db: Session = Depends(get_db), current_user: dict = None):
+async def get_fleet_sync_logs(
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     return db.query(FleetSyncLog).order_by(FleetSyncLog.sync_started.desc()).limit(limit).all()
 
+
 @app.post("/api/abm/sync")
-async def trigger_abm_sync(db: Session = Depends(get_db), current_user: dict = None):
-    abm_client_id = os.getenv("ABM_CLIENT_ID"); abm_key_id = os.getenv("ABM_KEY_ID"); abm_key_path = os.getenv("ABM_PRIVATE_KEY_PATH")
+async def trigger_abm_sync(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    abm_client_id = os.getenv("ABM_CLIENT_ID")
+    abm_key_id = os.getenv("ABM_KEY_ID")
+    abm_key_path = os.getenv("ABM_PRIVATE_KEY_PATH")
     if not all([abm_client_id, abm_key_id, abm_key_path]):
         raise HTTPException(status_code=500, detail="ABM not configured. Set ABM_CLIENT_ID, ABM_KEY_ID, ABM_PRIVATE_KEY_PATH in .env")
-    stats = await ABMService(client_id=abm_client_id, key_id=abm_key_id, private_key_path=abm_key_path).sync_devices(db, "system")
+    stats = await ABMService(client_id=abm_client_id, key_id=abm_key_id, private_key_path=abm_key_path).sync_devices(db, current_user.get('email', 'system'))
     return {"message": "ABM sync completed", "stats": stats}
 
+
 @app.get("/api/abm/sync-logs")
-async def get_abm_sync_logs(limit: int = 10, db: Session = Depends(get_db), current_user: dict = None):
+async def get_abm_sync_logs(
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     return db.query(ABMSyncLog).order_by(ABMSyncLog.sync_started.desc()).limit(limit).all()
 
+
 @app.get("/api/dashboard/stats")
-async def get_dashboard_stats(db: Session = Depends(get_db), current_user: dict = None):
+async def get_dashboard_stats(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     try:
         total_assets = db.query(Asset).count()
         assigned_assets = db.query(Asset).filter(Asset.status == AssetStatus.ASSIGNED).count()
         available_assets = db.query(Asset).filter(Asset.status == AssetStatus.AVAILABLE).count()
-        try: locked_assets = db.query(Asset).filter(Asset.status == AssetStatus.LOCKED).count()
-        except Exception: locked_assets = 0
-        unassigned_assets = db.query(Asset).filter(or_(Asset.assigned_email == None, Asset.assigned_email == ''), Asset.status != AssetStatus.RETIRED).count()
+        try:
+            locked_assets = db.query(Asset).filter(Asset.status == AssetStatus.LOCKED).count()
+        except Exception:
+            locked_assets = 0
+        unassigned_assets = db.query(Asset).filter(
+            or_(Asset.assigned_email == None, Asset.assigned_email == ''),
+            Asset.status != AssetStatus.RETIRED
+        ).count()
         thirty_days = datetime.utcnow() + timedelta(days=30)
-        warranty_expiring = db.query(Asset).filter(and_(Asset.warranty_expiration <= thirty_days, Asset.warranty_expiration >= datetime.utcnow(), Asset.status != AssetStatus.RETIRED)).count()
+        warranty_expiring = db.query(Asset).filter(
+            and_(Asset.warranty_expiration <= thirty_days,
+                 Asset.warranty_expiration >= datetime.utcnow(),
+                 Asset.status != AssetStatus.RETIRED)
+        ).count()
         fleet_enrolled = db.query(Asset).filter(Asset.fleet_enrolled == True).count()
         abm_enrolled = db.query(Asset).filter(Asset.abm_device_id != None).count()
         all_assets = db.query(Asset).filter(Asset.status != AssetStatus.RETIRED).all()
         platform_breakdown = dict(sorted(Counter(resolve_platform(a) for a in all_assets).items(), key=lambda x: -x[1]))
         location_breakdown = dict(sorted(Counter(a.location or 'Unset' for a in all_assets).items(), key=lambda x: -x[1]))
-        return {"total_assets": total_assets, "assigned": assigned_assets, "available": available_assets,
-                "unassigned": unassigned_assets, "locked": locked_assets, "warranty_expiring_soon": warranty_expiring,
-                "fleet_enrolled": fleet_enrolled, "abm_enrolled": abm_enrolled,
-                "platform_breakdown": platform_breakdown, "location_breakdown": location_breakdown}
+        return {
+            "total_assets": total_assets, "assigned": assigned_assets, "available": available_assets,
+            "unassigned": unassigned_assets, "locked": locked_assets,
+            "warranty_expiring_soon": warranty_expiring, "fleet_enrolled": fleet_enrolled,
+            "abm_enrolled": abm_enrolled, "platform_breakdown": platform_breakdown,
+            "location_breakdown": location_breakdown
+        }
     except Exception as e:
-        print(f"Dashboard stats error: {e}"); traceback.print_exc()
+        print(f"Dashboard stats error: {e}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to load dashboard stats: {str(e)}")
 
+
 @app.get("/api/assets/export/csv")
-async def export_assets_csv(status: Optional[AssetStatus] = None, device_type: Optional[str] = None, db: Session = Depends(get_db), current_user: dict = None):
+async def export_assets_csv(
+    status: Optional[AssetStatus] = None,
+    device_type: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     query = db.query(Asset)
     if status: query = query.filter(Asset.status == status)
     if device_type: query = query.filter(Asset.device_type == device_type)
     assets = query.all()
     output = StringIO()
     writer = csv.writer(output)
-    writer.writerow(['Asset Tag', 'Serial Number', 'Manufacturer', 'Model', 'Platform', 'Hostname', 'OS Type', 'OS Version', 'Processor', 'RAM (GB)', 'Storage (GB)', 'Status', 'Condition', 'Assigned To', 'Assigned Email', 'Department', 'Location', 'Purchase Date', 'Purchase Cost', 'Warranty Expiration', 'Fleet Enrolled', 'Fleet Last Seen', 'ABM Status', 'ABM Product Family', 'ABM Order Number', 'ABM Order Date', 'ABM Color', 'ABM Capacity', 'ABM Added Date', 'Created At'])
+    writer.writerow(['Asset Tag', 'Serial Number', 'Manufacturer', 'Model', 'Platform', 'Hostname',
+                     'OS Type', 'OS Version', 'Processor', 'RAM (GB)', 'Storage (GB)', 'Status',
+                     'Condition', 'Assigned To', 'Assigned Email', 'Department', 'Location',
+                     'Purchase Date', 'Purchase Cost', 'Warranty Expiration', 'Fleet Enrolled',
+                     'Fleet Last Seen', 'ABM Status', 'ABM Product Family', 'ABM Order Number',
+                     'ABM Order Date', 'ABM Color', 'ABM Capacity', 'ABM Added Date', 'Created At'])
     for asset in assets:
-        writer.writerow([asset.asset_tag, asset.serial_number, asset.manufacturer, asset.model, resolve_platform(asset), asset.hostname or '', asset.os_type or '', asset.os_version or '', asset.processor or '', asset.ram_gb or '', asset.storage_gb or '', asset.status.value if asset.status else '', asset.condition.value if asset.condition else '', asset.assigned_to or '', asset.assigned_email or '', asset.department or '', asset.location or '', asset.purchase_date.strftime('%Y-%m-%d') if asset.purchase_date else '', asset.purchase_cost or '', asset.warranty_expiration.strftime('%Y-%m-%d') if asset.warranty_expiration else '', 'Yes' if asset.fleet_enrolled else 'No', asset.fleet_last_seen.strftime('%Y-%m-%d %H:%M') if asset.fleet_last_seen else '', asset.abm_status or '', asset.abm_product_family or '', asset.abm_order_number or '', asset.abm_order_date.strftime('%Y-%m-%d') if asset.abm_order_date else '', asset.abm_color or '', asset.abm_device_capacity or '', asset.abm_added_date.strftime('%Y-%m-%d') if asset.abm_added_date else '', asset.created_at.strftime('%Y-%m-%d') if asset.created_at else ''])
+        writer.writerow([
+            asset.asset_tag, asset.serial_number, asset.manufacturer, asset.model,
+            resolve_platform(asset), asset.hostname or '', asset.os_type or '',
+            asset.os_version or '', asset.processor or '', asset.ram_gb or '', asset.storage_gb or '',
+            asset.status.value if asset.status else '', asset.condition.value if asset.condition else '',
+            asset.assigned_to or '', asset.assigned_email or '', asset.department or '', asset.location or '',
+            asset.purchase_date.strftime('%Y-%m-%d') if asset.purchase_date else '',
+            asset.purchase_cost or '',
+            asset.warranty_expiration.strftime('%Y-%m-%d') if asset.warranty_expiration else '',
+            'Yes' if asset.fleet_enrolled else 'No',
+            asset.fleet_last_seen.strftime('%Y-%m-%d %H:%M') if asset.fleet_last_seen else '',
+            asset.abm_status or '', asset.abm_product_family or '', asset.abm_order_number or '',
+            asset.abm_order_date.strftime('%Y-%m-%d') if asset.abm_order_date else '',
+            asset.abm_color or '', asset.abm_device_capacity or '',
+            asset.abm_added_date.strftime('%Y-%m-%d') if asset.abm_added_date else '',
+            asset.created_at.strftime('%Y-%m-%d') if asset.created_at else ''
+        ])
     output.seek(0)
-    return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers={"Content-Disposition": "attachment; filename=ham-asset-export.csv"})
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=ham-asset-export.csv"}
+    )
+
 
 if __name__ == "__main__":
     import uvicorn
