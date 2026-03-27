@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ham-db
+    environment:
+      POSTGRES_DB: asset_tracker
+      POSTGRES_USER: assetuser
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - ham-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U assetuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ham-backend
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://assetuser:${POSTGRES_PASSWORD:-changeme123}@postgres:5432/asset_tracker
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      SECRET_KEY: ${SECRET_KEY:-change-this-secret-key-in-production}
+      LOCATIONS: ${LOCATIONS:-HQ,Remote}
+      ASSET_TAG_PREFIX: ${ASSET_TAG_PREFIX:-HAM}
+      MDM_PROVIDER: ${MDM_PROVIDER:-fleet}
+      IDP_PROVIDER: ${IDP_PROVIDER:-okta}
+      # OIDC / Identity Provider
+      OIDC_ISSUER: ${OIDC_ISSUER}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}
+      OIDC_REDIRECT_URI: ${OIDC_REDIRECT_URI}
+      IDP_API_TOKEN: ${IDP_API_TOKEN}
+      # Fleet MDM
+      FLEET_URL: ${FLEET_URL}
+      FLEET_API_TOKEN: ${FLEET_API_TOKEN}
+      FLEET_SYNC_SCHEDULED: ${FLEET_SYNC_SCHEDULED:-true}
+      FLEET_SYNC_HOUR: ${FLEET_SYNC_HOUR:-21}
+      FLEET_SYNC_MINUTE: ${FLEET_SYNC_MINUTE:-0}
+      FLEET_SYNC_TIMEZONE: ${FLEET_SYNC_TIMEZONE:-US/Pacific}
+      # Apple Business Manager (optional)
+      ABM_CLIENT_ID: ${ABM_CLIENT_ID}
+      ABM_KEY_ID: ${ABM_KEY_ID}
+      ABM_PRIVATE_KEY_PATH: ${ABM_PRIVATE_KEY_PATH}
+      ABM_SYNC_SCHEDULED: ${ABM_SYNC_SCHEDULED:-true}
+      ABM_SYNC_HOUR: ${ABM_SYNC_HOUR:-20}
+      ABM_SYNC_MINUTE: ${ABM_SYNC_MINUTE:-0}
+      APPLECARE_CONCURRENCY: ${APPLECARE_CONCURRENCY:-2}
+      # Slack (optional)
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ham-network
+    volumes:
+      - ./backend:/app
+      - uploads:/app/uploads
+      - ./keys:/app/keys:ro
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ham-frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_OIDC_ISSUER: ${OIDC_ISSUER}
+      REACT_APP_OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - ham-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm start
+
+volumes:
+  postgres_data:
+  uploads:
+
+networks:
+  ham-network:
+    driver: bridge
