@@ -1,0 +1,16 @@
+# uv.lock — TO BE GENERATED LOCALLY
+# Run `uv lock` in the backend directory to generate this file.
+# Do not commit a manually edited lockfile — hashes must match real package contents.
+#
+# Steps:
+#   pip install uv
+#   cd backend
+#   uv lock
+#   git add uv.lock && git commit -m "Add uv.lock"
+#
+# Once uv.lock is properly generated, update Dockerfile to:
+#   RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+#   ENV PATH="/root/.local/bin:$PATH"
+#   COPY pyproject.toml uv.lock ./
+#   RUN uv sync --frozen --no-dev
+#   CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
