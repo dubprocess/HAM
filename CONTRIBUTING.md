@@ -7,7 +7,7 @@ Thanks for your interest in contributing! HAM is an open source project and cont
 ## Ways to contribute
 
 - **Bug fixes** — open an issue first if it's non-trivial
-- **New MDM provider** — Jamf stub is ready, see [docs/jamf.md](docs/jamf.md)
+- **New MDM provider** — Jamf stub is ready; Iru and Intune are open. See [docs/jamf.md](docs/jamf.md)
 - **New identity provider** — see [docs/identity-providers.md](docs/identity-providers.md)
 - **Docs improvements** — always welcome
 - **UI improvements** — React frontend in `frontend/src/`
@@ -108,6 +108,8 @@ This is the highest-impact contribution area. Here's the short version:
 4. Add a `docs/{provider}.md` setup guide
 5. Update the integration table in `README.md`
 6. Update `main.py` to route `MDM_PROVIDER={provider}` to your service
+
+Open MDM providers: **Iru**, **Mosyle**, **Intune**
 
 See [docs/jamf.md](docs/jamf.md) for a detailed walkthrough of what's involved.
 

@@ -24,7 +24,7 @@ HAM (Hardware Asset Manager) is an open source IT asset management system built 
 |---|---|---|
 | MDM | Fleet | ✅ Fully implemented |
 | MDM | Jamf Pro | 🚧 Stub ready — PRs welcome |
-| MDM | Mosyle / Kandji / Intune | 🚧 PRs welcome |
+| MDM | Mosyle / Iru / Intune | 🚧 PRs welcome |
 | Identity | Okta | ✅ Fully implemented |
 | Identity | Azure AD / Entra ID | 🚧 PRs welcome |
 | Identity | Google Workspace | 🚧 PRs welcome |
@@ -227,6 +227,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started, and [docs/jamf.md
 
 The highest-impact areas right now:
 - **Jamf Pro** — stub is ready in `backend/jamf_service.py`, field mappings are written
+- **Iru** — new `*_service.py` following the same interface as `fleet_service.py`
 - **Azure AD / Google Workspace** — OIDC login likely works, needs user enrichment adapter
 - **Kubernetes Helm chart**
 - **Backend test coverage**
