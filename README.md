@@ -176,7 +176,7 @@ PRs are welcome! Here's where contributions would have the most impact:
 
 **MDM providers**
 - Jamf Pro — stub is in `backend/jamf_service.py`, field mappings are written, sync logic needs implementing. See [docs/jamf.md](docs/jamf.md).
-- Mosyle, Kandji, Intune — new `*_service.py` following the same interface as `fleet_service.py`
+- Mosyle, Iru (formerly Kandji), Intune — new `*_service.py` following the same interface as `fleet_service.py`
 
 **Identity providers**
 - Azure AD, Google Workspace, Auth0 — OIDC login likely works already, needs user enrichment adapter. See [docs/identity-providers.md](docs/identity-providers.md).
