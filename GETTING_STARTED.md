@@ -238,7 +238,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
 |---|---|---|
 | Jamf Pro | Stub ready — field mappings written | `backend/jamf_service.py` + [docs/jamf.md](docs/jamf.md) |
 | Mosyle | Not started | `backend/base_mdm_service.py` for interface |
-| Iru (formerly Kandji) | Not started | `backend/base_mdm_service.py` for interface |
+| Iru | Not started | `backend/base_mdm_service.py` for interface |
 | Intune | Not started | `backend/base_mdm_service.py` for interface |
 
 ### 🟡 Identity providers
