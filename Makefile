@@ -1,4 +1,4 @@
-.PHONY: help start start-d stop build logs logs-backend shell-backend shell-db migrate migration test lint sync-fleet sync-abm scheduler-status seed seed-clear seed-wipe
+.PHONY: help setup start start-d stop build logs logs-backend shell-backend shell-db migrate migration test lint sync-fleet sync-abm scheduler-status seed seed-clear seed-wipe
 
 # Default target — show available commands
 help:
@@ -7,6 +7,9 @@ help:
 	@echo "============================="
 	@echo ""
 	@echo "Usage: make <target>"
+	@echo ""
+	@echo "Setup:"
+	@echo "  setup             install Python deps locally via uv (no Docker required)"
 	@echo ""
 	@echo "Dev:"
 	@echo "  start             docker compose up --build (foreground)"
@@ -34,6 +37,16 @@ help:
 	@echo "  sync-abm          trigger an ABM sync"
 	@echo "  scheduler-status  check nightly sync schedule"
 	@echo ""
+
+# ── Setup ─────────────────────────────────────────────────────────────────────
+
+setup:
+	@echo "Installing Python dependencies via uv..."
+	@command -v uv >/dev/null 2>&1 || { echo "uv not found. Install it with: brew install uv"; exit 1; }
+	cd backend && uv sync --frozen
+	@echo ""
+	@echo "Done. To run the backend locally:"
+	@echo "  cd backend && uv run uvicorn main:app --reload"
 
 # ── Dev ───────────────────────────────────────────────────────────────────────
 
