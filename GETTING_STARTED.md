@@ -155,15 +155,20 @@ cd HAM
 
 ### Step 2 — Set up your local environment
 
-**Backend (Python):**
+The fastest way to get up and running without Docker:
+
+```bash
+brew install uv   # or: pip install uv
+make setup
+```
+
+`make setup` installs all Python backend dependencies from the lockfile via `uv sync --frozen`, ensuring you get the exact same package versions used in production.
+
+To run the backend locally after setup:
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env — set LOCAL_AUTH=true for the simplest local setup
+uv run uvicorn main:app --reload
 ```
 
 **Database:**
@@ -172,12 +177,6 @@ cp .env.example .env
 docker compose up postgres -d
 make migrate
 make seed   # populate with demo data
-```
-
-**Run the backend:**
-
-```bash
-uvicorn main:app --reload
 ```
 
 **Frontend (React):**

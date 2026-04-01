@@ -26,26 +26,38 @@ cd HAM
 
 ### 2. Set up your dev environment
 
+The fastest path — install dependencies from the lockfile without Docker:
+
 ```bash
-# Start dependencies
-docker compose up postgres -d
+brew install uv   # or: pip install uv
+make setup
+```
 
-# Backend
+This runs `uv sync --frozen` in the `backend/` directory, installing all Python dependencies pinned to the exact versions in `uv.lock`. No venv setup needed — uv manages it automatically.
+
+To run the backend after setup:
+
+```bash
 cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env with your credentials
-uvicorn main:app --reload
+uv run uvicorn main:app --reload
+```
 
-# Frontend (separate terminal)
+Then start just the database:
+
+```bash
+docker compose up postgres -d
+make migrate
+```
+
+**Frontend (separate terminal):**
+
+```bash
 cd frontend
 npm install
 npm start
 ```
 
-Or run everything with Docker:
+Or run everything with Docker if you prefer:
 
 ```bash
 docker compose up --build
@@ -109,6 +121,25 @@ See [docs/jamf.md](docs/jamf.md) for a detailed walkthrough of what's involved.
 4. Update `docs/identity-providers.md` and `README.md`
 
 See [docs/identity-providers.md](docs/identity-providers.md) for details.
+
+---
+
+## Dependency management
+
+HAM uses [uv](https://github.com/astral-sh/uv) for Python dependency management.
+
+- `backend/pyproject.toml` — direct dependencies, all pinned to exact versions
+- `backend/uv.lock` — full transitive lockfile with cryptographic hashes
+
+If you add or change a dependency, update `pyproject.toml` and regenerate the lockfile:
+
+```bash
+cd backend
+uv lock
+git add uv.lock
+```
+
+Do not edit `uv.lock` manually.
 
 ---
 
