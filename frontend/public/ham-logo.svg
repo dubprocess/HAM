@@ -1,4 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 280" width="300" height="280">
+  <defs>
+    <filter id="textGlow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
   <g transform="translate(150, 95) scale(0.78)">
     <rect x="-95" y="-12" width="35" height="24" rx="10" fill="#F5E6C8" stroke="#1e293b" stroke-width="5"/>
     <ellipse cx="-98" cy="-10" rx="14" ry="16" fill="#F5E6C8" stroke="#1e293b" stroke-width="5"/>
@@ -16,7 +25,7 @@
     <ellipse cx="32" cy="-18" rx="8" ry="14" fill="white" opacity="0.35" transform="rotate(-15, 32, -18)"/>
     <circle cx="50" cy="8" r="10" fill="#fce4ec" stroke="#1e293b" stroke-width="3"/>
   </g>
-  <text x="150" y="202" text-anchor="middle" font-family="'Georgia', 'Palatino', 'Times New Roman', serif" font-size="64" font-weight="700" fill="#2D2D2D" letter-spacing="6">HAM</text>
-  <text x="150" y="234" text-anchor="middle" font-family="'SF Mono', 'Fira Code', 'Courier New', monospace" font-size="18" font-weight="600" fill="#2D2D2D" letter-spacing="2">HARDWARE ASSET</text>
-  <text x="150" y="254" text-anchor="middle" font-family="'SF Mono', 'Fira Code', 'Courier New', monospace" font-size="18" font-weight="600" fill="#2D2D2D" letter-spacing="2">MANAGEMENT</text>
+  <text x="150" y="202" text-anchor="middle" font-family="'Georgia', 'Palatino', 'Times New Roman', serif" font-size="64" font-weight="700" fill="#FFFFFF" letter-spacing="6" filter="url(#textGlow)">HAM</text>
+  <text x="150" y="234" text-anchor="middle" font-family="'SF Mono', 'Fira Code', 'Courier New', monospace" font-size="18" font-weight="600" fill="#E2E8F0" letter-spacing="2">HARDWARE ASSET</text>
+  <text x="150" y="254" text-anchor="middle" font-family="'SF Mono', 'Fira Code', 'Courier New', monospace" font-size="18" font-weight="600" fill="#E2E8F0" letter-spacing="2">MANAGEMENT</text>
 </svg>
