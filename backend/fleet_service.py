@@ -34,6 +34,19 @@ class FleetMDMService:
         return domain in ALLOWED_EMAIL_DOMAINS
 
     @staticmethod
+    def _extract_model_identifier(fleet_host: Dict) -> Optional[str]:
+        """Extract the Apple model identifier (e.g. Mac15,12) from Fleet host data.
+        
+        Fleet exposes this as hardware_model on macOS/darwin hosts.
+        Only populated for Apple devices — returns None for Windows/Linux.
+        """
+        platform = fleet_host.get('platform', '').lower()
+        if 'darwin' not in platform:
+            return None
+        model_id = fleet_host.get('hardware_model', '')
+        return model_id if model_id else None
+
+    @staticmethod
     def _is_device_locked(fleet_host: Dict) -> bool:
         """Detect if a Fleet device is pin-locked.
         
@@ -253,6 +266,7 @@ class FleetMDMService:
             'serial_number': serial,
             'manufacturer': fleet_host.get('hardware_vendor', 'Unknown'),
             'model': fleet_host.get('hardware_model', 'Unknown'),
+            'model_identifier': self._extract_model_identifier(fleet_host),
             'hostname': fleet_host.get('hostname', ''),
             'os_type': os_type,
             'os_version': os_version,
@@ -516,6 +530,7 @@ class FleetMDMService:
             serial_number=device_data['serial_number'],
             manufacturer=device_data['manufacturer'],
             model=device_data['model'],
+            model_identifier=device_data.get('model_identifier'),
             device_type='laptop',
             os_type=device_data['os_type'],
             os_version=device_data['os_version'],
@@ -540,6 +555,7 @@ class FleetMDMService:
             'hostname': device_data.get('hostname'),
             'manufacturer': device_data.get('manufacturer'),
             'model': device_data.get('model'),
+            'model_identifier': device_data.get('model_identifier'),
             'processor': device_data.get('processor'),
             'ram_gb': device_data.get('ram_gb'),
             'storage_gb': device_data.get('storage_gb'),

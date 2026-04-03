@@ -121,6 +121,7 @@ const AssetDetail = () => {
     return new Date(dateString).toLocaleString();
   };
 
+  const isAppleDevice = asset.manufacturer === 'Apple' || (asset.os_type || '').toLowerCase().includes('macos');
   const isAssigned = asset.assigned_to || asset.assigned_email;
   const displayName = asset.assigned_to || (asset.assigned_email ? asset.assigned_email.split('@')[0] : '');
   const hasABMData = asset.abm_device_id || asset.abm_order_number || asset.abm_status;
@@ -249,6 +250,12 @@ const AssetDetail = () => {
                 <div className="text-sm text-muted">Storage</div>
                 <div>{asset.storage_gb ? `${asset.storage_gb} GB` : '-'}</div>
               </div>
+              {isAppleDevice && asset.model_identifier && (
+                <div>
+                  <div className="text-sm text-muted">Model Identifier</div>
+                  <div className="mono">{asset.model_identifier}</div>
+                </div>
+              )}
             </div>
           </div>
 

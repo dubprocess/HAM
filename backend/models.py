@@ -56,6 +56,7 @@ class Asset(Base):
     # Device Info
     manufacturer = Column(String(100), nullable=False)
     model = Column(String(200), nullable=False)
+    model_identifier = Column(String(100))  # e.g. Mac15,12 — Apple devices only
     device_type = Column(String(50), nullable=False)
     hostname = Column(String(200))
     os_type = Column(String(50))
